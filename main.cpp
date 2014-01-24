@@ -41,6 +41,36 @@ struct Ray
 	}
 };
 
+float determinant(mat3 mat){
+	return (mat[0][0] * mat[1][1] * mat[2][2] + mat[0][1] * mat[1][2] * mat[2][0] + mat[0][2] * mat[1][0] * mat[2][1])
+		- (mat[0][2] * mat[1][1] * mat[2][0] + mat[0][1] * mat[1][0] * mat[2][2] + mat[0][0] * mat[1][2] * mat[2][1]);
+}
+
+float determinant(mat2 mat){
+	return mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0];
+}
+
+vec3 cross(vec3 v1, vec3 v2){
+	return vec3(v1.y*v2.z - v1.z*v2.y, v1.z*v2.x - v1.x*v2.z, v1.x*v2.y - v1.y*v2.x);
+}
+
+float dot(vec3 v1, vec3 v2){
+	return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+}
+
+//Erste drei Einträge Schnittpunkt, letzer Eintrag Distanz
+vec4* rayhittriangle(Ray ray, vec3 trix, vec3 triy, vec3 triz){
+	vec3 u = triy - trix; //http://cgvr.cs.uni-bremen.de/teaching/cg2_10/folien/07_raytracing_2.pdf
+	vec3 v = triz - trix;
+	vec3 w = ray.o - trix;
+	vec3 crossdv = cross(ray.d, v);
+	vec3 crosswu = cross(w, u);
+	vec3 hitpoint = (1 / dot(crossdv, u)) * vec3(dot(crosswu, v), dot(crossdv, w), dot(crosswu, ray.d));
+	if (0 < hitpoint.x < 1 && 0 < hitpoint.z < 1 && hitpoint.x + hitpoint.z <= 1)
+		return &vec4(hitpoint, 1 - hitpoint.x - hitpoint.z);
+	else
+		return nullptr;
+}
 
 // global variables //////////////////////////////////////////
 int _id_window, _id_screen, _id_world;
@@ -110,8 +140,8 @@ void create_primary_rays(std::vector<Ray>& rays, int resx, int resy)
 void ray_trace()
 {
 	// Number of samples in x and y direction given the sampling factor
-	int w = (int) _sample_factor * _win_w;
-	int h = (int) _sample_factor * _win_h;
+	int w = (int)_sample_factor * _win_w;
+	int h = (int)_sample_factor * _win_h;
 
 	_sample_width = w;
 	_sample_height = h;
@@ -450,8 +480,8 @@ void screen_mouse(int button, int state, int x, int y)
 	{
 		_view_motion = true;
 
-		_view_oldx = (float) x;
-		_view_oldy = (float) y;
+		_view_oldx = (float)x;
+		_view_oldy = (float)y;
 
 		_view_dofovy = (glutGetModifiers() & GLUT_ACTIVE_SHIFT) != 0;
 		_view_doshift = (glutGetModifiers() & GLUT_ACTIVE_ALT) != 0;
@@ -485,8 +515,8 @@ void screen_motion(int x, int y)
 			_view_rotx += 1.0f * (y - _view_oldy);
 		}
 
-		_view_oldx = (float) x;
-		_view_oldy = (float) y;
+		_view_oldx = (float)x;
+		_view_oldy = (float)y;
 	}
 
 	redisplay_all();
@@ -509,14 +539,14 @@ void world_mouse(int button, int state, int x, int y)
 {
 	if (button == GLUT_LEFT && state == GLUT_DOWN)
 	{
-		_world_oldx = (float) x;
+		_world_oldx = (float)x;
 	}
 }
 
 void world_motion(int x, int y)
 {
-	_world_roty += -1.0f * ((float) x - _world_oldx);
-	_world_oldx = (float) x;
+	_world_roty += -1.0f * ((float)x - _world_oldx);
+	_world_oldx = (float)x;
 
 	redisplay_all();
 }
@@ -561,6 +591,14 @@ void idle()
 
 int main(int argc, char** argv)
 {
+	//Test some stuff
+	vec4* result = rayhittriangle(
+		Ray(vec3(0, 0, 0), vec3(1, 0, 0)), 
+		vec3(2, 1, -1), vec3(2, -1, -1), vec3(2, 0, 1));
+	if (result == nullptr)
+		std::cout << "Was null\n";
+	else
+		std::cout << (*result).w << " " << (*result).x << " " << (*result).y << " " << (*result).z << "\n";
 	// Init OpenGL stuffs
 	glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
 	glutInitWindowSize(1024, 600);
