@@ -608,7 +608,7 @@ void idle()
 int main(int argc, char** argv)
 {
 	//Test some stuff
-	/*Mesh* mesh = new Mesh(); //When testing, then turn off centralization and distance normalization in the model loader
+	Mesh* mesh = new Mesh(); //When testing, then turn off centralization and distance normalization in the model loader
 	mesh->loadOff("scenedata/drei.off");
 	Ray* ray = new Ray(vec3(0, 0, 0), vec3(1, 0, 0));
 	Ray* hit = mesh->intersectpolygon(mesh->polygon[0], ray);
@@ -616,7 +616,7 @@ int main(int argc, char** argv)
 		std::cout << "No hit\n";
 	else
 		std::cout << hit->hitdistance << " " << hit->o.x << " " << hit->o.y << " " << hit->o.z << "\n";
-	*/
+	
 	// Init OpenGL stuffs
 	glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
 	glutInitWindowSize(1024, 600);

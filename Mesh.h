@@ -26,7 +26,7 @@ public:
 		int* nodes;
 		struct {
 			vec3 gamma1, beta1, normal;
-			float gamma2, beta2;
+			float gamma2, beta2, surface;
 		} h;
 	} poly;
 	typedef struct {
@@ -46,6 +46,8 @@ public:
 	vec3 normalizevector(vec3 vector);
 	vec3 crossproduct(vec3 v1, vec3 v2);
 	float dot(vec3 v1, vec3 v2);
+	float Mesh::length(vec3 v);
+	float Mesh::surface(vec3 v1, vec3 v2, vec3 v3);
 
 	Ray* intersectpolygon(poly poly, Ray* ray);
 };

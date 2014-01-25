@@ -13,6 +13,8 @@ public:
 	glm::vec3 o;
 	glm::vec3 d;
 	float hitdistance;
+	int originpoly;
+	void* originmodel;
 
 	float tmin;
 	

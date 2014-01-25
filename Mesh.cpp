@@ -4,6 +4,8 @@
 #include <string>
 #include <sstream>
 #include <cstring>
+
+#include "Ray.h"
 using namespace std;
 Mesh::Mesh()
 {
@@ -49,7 +51,7 @@ bool Mesh::loadOff(std::string filename){
 			modelfile.close();
 			return false;
 		} //error handling because line is missing
-		{ //Center the model
+		if (0){ //Center the model
 			vec3 sum = vec3(0, 0, 0);
 			for (int i = 0; i < nodes; i++)
 				sum += node[i].node;
@@ -57,7 +59,7 @@ bool Mesh::loadOff(std::string filename){
 			for (int i = 0; i < nodes; i++)
 				node[i].node -= sum;
 		}
-		{ //Normalize the distance
+		if (0){ //Normalize the distance
 			GLfloat avg = 0;
 			for (int i = 0; i < nodes; i++)
 				avg += std::sqrt(node[i].node.x * node[i].node.x + node[i].node.y * node[i].node.y + node[i].node.z * node[i].node.z);
@@ -88,6 +90,7 @@ bool Mesh::loadOff(std::string filename){
 					polygon[i].h.gamma1 = (y *xdotx * D) - (x*xdoty*D);
 					polygon[i].h.gamma2 = dot(-node[polygon[i].nodes[0]].node, polygon[i].h.gamma1);
 					polygon[i].h.normal = crossproduct(node[polygon[i].nodes[2]].node - node[polygon[i].nodes[0]].node, node[polygon[i].nodes[1]].node - node[polygon[i].nodes[0]].node);
+					polygon[i].h.surface = surface(node[polygon[i].nodes[0]].node, node[polygon[i].nodes[1]].node, node[polygon[i].nodes[2]].node);
 				}
 			}
 			{ //Apply surface normal vector to vertex normal vectors
@@ -154,12 +157,19 @@ Ray* Mesh::intersectModel(Ray* ray){ //TODO testen und beenden
 	for (int i = 0; i < this->nodes; i++){
 		Ray* intersect = this->intersectpolygon(polygon[i], ray);
 		if (intersect != nullptr)
-		if (hit == nullptr)
+		if (hit == nullptr){
 			hit = intersect;
+			closestpoly = i;
+		}
 		else if (intersect->hitdistance < hit->hitdistance){
 			delete hit;
 			hit = intersect;
+			closestpoly = i;
 		}
+	}
+	if (hit != nullptr){
+		hit->originmodel = this;
+		hit->originpoly = closestpoly;
 	}
 	return hit;
 }
@@ -179,6 +189,13 @@ Ray* Mesh::intersectpolygon(poly poly, Ray* ray){
 		Ray* hit = new Ray();
 		hit->o = hitpoint;
 		hit->hitdistance = distance;
+		float s1 = surface(node[poly.nodes[0]].node, node[poly.nodes[1]].node, hitpoint);
+		float s2 = surface(node[poly.nodes[1]].node, node[poly.nodes[2]].node, hitpoint);
+		float s3 = surface(node[poly.nodes[2]].node, node[poly.nodes[3]].node, hitpoint);
+		s1 /= poly.h.surface;
+		s2 /= poly.h.surface;
+		s3 /= poly.h.surface;
+		vec3 hitnormal;// = vec3(node[poly.nodes[0]])
 		//TODO hit->d soll die Richtung des reflektierten Strahls werden
 		return hit;
 	}
@@ -223,6 +240,18 @@ vec3 Mesh::crossproduct(vec3 v1, vec3 v2){
 
 float Mesh::dot(vec3 v1, vec3 v2){
 	return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z;
+}
+
+float Mesh::length(vec3 v){
+	return sqrtf(dot(v, v));
+}
+
+float Mesh::surface(vec3 v1, vec3 v2, vec3 v3){
+	float la = length(v1 - v2);
+	float lb = length(v2 - v3);
+	float lc = length(v3 - v1);
+	float halfu = 0.5f * (la + lb + lc);
+	return sqrtf(halfu*(halfu - la)*(halfu - lb)*(halfu - lc));
 }
 
 void Mesh::renderFlat(){
