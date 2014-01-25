@@ -5,6 +5,10 @@
 #include <vector>
 #include <limits>
 
+
+#include "Ray.h"
+#include "Mesh.h"
+
 #include <glm/glm.hpp>
 
 using namespace glm;
@@ -15,31 +19,6 @@ using namespace glm;
 #include <GL/glut.h>
 #endif
 
-/*
- * A simple structure to contain a ray
- */
-struct Ray
-{
-	glm::vec3 o;
-	glm::vec3 d;
-
-	float tmin;
-
-	Ray() : tmin(0) {}
-	Ray(const vec3& origin, const vec3& dir)
-		: o(origin), d(dir), tmin(0)
-	{
-	}
-	Ray(const vec3& origin, const vec3& dir, float eps)
-		: o(origin + eps*dir), d(dir), tmin(0)
-	{
-	}
-
-	vec3 att(float t) const
-	{
-		return o + t*d;
-	}
-};
 
 float determinant(mat3 mat){
 	return (mat[0][0] * mat[1][1] * mat[2][2] + mat[0][1] * mat[1][2] * mat[2][0] + mat[0][2] * mat[1][0] * mat[2][1])
@@ -58,18 +37,55 @@ float dot(vec3 v1, vec3 v2){
 	return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
 }
 
-//Erste drei Einträge Schnittpunkt, letzer Eintrag Distanz
-vec4* rayhittriangle(Ray ray, vec3 trix, vec3 triy, vec3 triz){
-	vec3 u = triy - trix; //http://cgvr.cs.uni-bremen.de/teaching/cg2_10/folien/07_raytracing_2.pdf
+//Erste drei Einträge Schnittpunkt, letzer Eintrag Distanz, 0,0,0,-1 wenn kein Schnitt
+vec4 rayhittriangle(Ray ray, vec3 trix, vec3 triy, vec3 triz){
+	/*vec3 u = triy - trix; //http://cgvr.cs.uni-bremen.de/teaching/cg2_10/folien/07_raytracing_2.pdf
 	vec3 v = triz - trix;
 	vec3 w = ray.o - trix;
 	vec3 crossdv = cross(ray.d, v);
 	vec3 crosswu = cross(w, u);
 	vec3 hitpoint = (1 / dot(crossdv, u)) * vec3(dot(crosswu, v), dot(crossdv, w), dot(crosswu, ray.d));
 	if (0 < hitpoint.x < 1 && 0 < hitpoint.z < 1 && hitpoint.x + hitpoint.z <= 1)
-		return &vec4(hitpoint, 1 - hitpoint.x - hitpoint.z);
+	return vec4(hitpoint, 1 - hitpoint.x - hitpoint.z);
 	else
-		return nullptr;
+	return vec4(0, 0, 0, -1);*/
+	/*//Vorlesungsfolien
+	float det = 1.0f / determinant(mat3(-ray.d, triy - trix, triz - trix));
+	float t = det*dot(cross(ray.o - trix, triy - trix), triz - trix);
+	float u = det*dot(cross(ray.d, triz - trix), ray.o - trix);
+	float v = det*dot(cross(ray.o - trix, triy - trix), ray.d);
+	if (0 < u < 1 && 0 < v<1 && t>0)
+	return vec4(u, v, u + v, t);
+	else
+	return vec4(0, 0, 0, -1);*/
+	vec3 normal = cross(triz - trix, triy - trix); //http://uninformativ.de/bin/RaytracingSchnitttests-76a577a-CC-BY.pdf
+	float d = dot(normal, trix);
+	float rn = dot(normal, ray.d);
+	if (rn == 0.0f) // If we do not catch division by zero, then we get invalid results
+		return vec4(0, 0, 0, -1);
+	float alpha1 = (d - dot(ray.o, normal)) / rn;
+	vec3 q = ray.o + alpha1*ray.d;
+	vec3 b = triy - trix;
+	vec3 c = triz - trix;
+	float bb = dot(b, b);
+	float bc = dot(b, c);
+	float cc = dot(c, c);
+	float D = 1.0f / (cc*bb - bc*bc);
+	float bbd = bb * D;
+	float bcd = bc * D;
+	float ccd = cc * D;
+	vec3 ubeta = (ccd * b) - (c * bcd);
+	float kbeta = dot(-trix, ubeta);
+	vec3 ugamma = (c *bbd) - (b*bcd);
+	float kgamma = dot(-trix, ugamma);
+	float beta = dot(ubeta, q) + kbeta;
+	float gamma = dot(ugamma, q) + kgamma;
+	float alpha = 1 - beta - gamma;
+	if (alpha1 <= 0.0f || beta < 0.0f || gamma < 0.0f || alpha < 0.0f)
+		return vec4(0, 0, 0, -1);
+	else
+		return vec4(q, alpha1);
+
 }
 
 // global variables //////////////////////////////////////////
@@ -592,13 +608,15 @@ void idle()
 int main(int argc, char** argv)
 {
 	//Test some stuff
-	vec4* result = rayhittriangle(
-		Ray(vec3(0, 0, 0), vec3(1, 0, 0)), 
-		vec3(2, 1, -1), vec3(2, -1, -1), vec3(2, 0, 1));
-	if (result == nullptr)
-		std::cout << "Was null\n";
+	/*Mesh* mesh = new Mesh(); //When testing, then turn off centralization and distance normalization in the model loader
+	mesh->loadOff("scenedata/drei.off");
+	Ray* ray = new Ray(vec3(0, 0, 0), vec3(1, 0, 0));
+	Ray* hit = mesh->intersectpolygon(mesh->polygon[0], ray);
+	if (hit == nullptr)
+		std::cout << "No hit\n";
 	else
-		std::cout << (*result).w << " " << (*result).x << " " << (*result).y << " " << (*result).z << "\n";
+		std::cout << hit->hitdistance << " " << hit->o.x << " " << hit->o.y << " " << hit->o.z << "\n";
+	*/
 	// Init OpenGL stuffs
 	glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
 	glutInitWindowSize(1024, 600);
