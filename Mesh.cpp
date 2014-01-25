@@ -51,7 +51,7 @@ bool Mesh::loadOff(std::string filename){
 			modelfile.close();
 			return false;
 		} //error handling because line is missing
-		if (0){ //Center the model
+		{ //Center the model
 			vec3 sum = vec3(0, 0, 0);
 			for (int i = 0; i < nodes; i++)
 				sum += node[i].node;
@@ -59,7 +59,7 @@ bool Mesh::loadOff(std::string filename){
 			for (int i = 0; i < nodes; i++)
 				node[i].node -= sum;
 		}
-		if (0){ //Normalize the distance
+		{ //Normalize the distance
 			GLfloat avg = 0;
 			for (int i = 0; i < nodes; i++)
 				avg += std::sqrt(node[i].node.x * node[i].node.x + node[i].node.y * node[i].node.y + node[i].node.z * node[i].node.z);
@@ -189,14 +189,14 @@ Ray* Mesh::intersectpolygon(poly poly, Ray* ray){
 		Ray* hit = new Ray();
 		hit->o = hitpoint;
 		hit->hitdistance = distance;
-		float s1 = surface(node[poly.nodes[0]].node, node[poly.nodes[1]].node, hitpoint);
-		float s2 = surface(node[poly.nodes[1]].node, node[poly.nodes[2]].node, hitpoint);
-		float s3 = surface(node[poly.nodes[2]].node, node[poly.nodes[3]].node, hitpoint);
-		s1 /= poly.h.surface;
-		s2 /= poly.h.surface;
-		s3 /= poly.h.surface;
-		vec3 hitnormal;// = vec3(node[poly.nodes[0]])
-		//TODO hit->d soll die Richtung des reflektierten Strahls werden
+		float s1 = surface(node[poly.nodes[0]].node, node[poly.nodes[1]].node, hitpoint) / poly.h.surface;
+		float s2 = surface(node[poly.nodes[0]].node, node[poly.nodes[2]].node, hitpoint) / poly.h.surface;
+		float s3 = surface(node[poly.nodes[1]].node, node[poly.nodes[2]].node, hitpoint) / poly.h.surface;
+		float a1 = 0.5f * (s1 + s2 - s3);
+		float a2 = 0.5f * (s1 - s2 + s3);
+		float a3 = 0.5f * (s3 + s2 - s1);
+		vec3 hitnormal = a1*node[poly.nodes[0]].normal+ a2*node[poly.nodes[1]].normal+ a3*node[poly.nodes[2]].normal;
+		hit->d = normalize(2.0f * dot(ray->d, hitnormal)*hitnormal - ray->d);
 		return hit;
 	}
 }
