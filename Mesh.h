@@ -43,10 +43,10 @@ public:
 	void renderFlat();
 	void renderSmooth();
 	void renderTextured();
-	vec3 normalizevector(vec3 vector);
-	vec3 crossproduct(vec3 v1, vec3 v2);
-	float dot(vec3 v1, vec3 v2);
-	float Mesh::length(vec3 v);
+	//vec3 normalizevector(vec3 vector);
+	//vec3 crossproduct(vec3 v1, vec3 v2);
+	//float dot(vec3 v1, vec3 v2);
+	//float Mesh::length(vec3 v);
 	float Mesh::surface(vec3 v1, vec3 v2, vec3 v3);
 
 	Ray* intersectpolygon(poly poly, Ray* ray);

@@ -77,7 +77,7 @@ bool Mesh::loadOff(std::string filename){
 			{ //Calculate surface normal vector
 				vec3 a = node[polygon[i].nodes[0]].node - node[polygon[i].nodes[1]].node;
 				vec3 b = node[polygon[i].nodes[1]].node - node[polygon[i].nodes[2]].node;
-				polygon[i].normal = this->normalizevector(this->crossproduct(a, b));
+				polygon[i].normal = glm::normalize(glm::cross(a,b));
 				{
 					vec3 x = node[polygon[i].nodes[1]].node - node[polygon[i].nodes[0]].node;
 					vec3 y = node[polygon[i].nodes[2]].node - node[polygon[i].nodes[0]].node;
@@ -89,7 +89,7 @@ bool Mesh::loadOff(std::string filename){
 					polygon[i].h.beta2 = dot(-node[polygon[i].nodes[0]].node, polygon[i].h.beta1);
 					polygon[i].h.gamma1 = (y *xdotx * D) - (x*xdoty*D);
 					polygon[i].h.gamma2 = dot(-node[polygon[i].nodes[0]].node, polygon[i].h.gamma1);
-					polygon[i].h.normal = crossproduct(node[polygon[i].nodes[2]].node - node[polygon[i].nodes[0]].node, node[polygon[i].nodes[1]].node - node[polygon[i].nodes[0]].node);
+					polygon[i].h.normal = glm::normalize(glm::cross(node[polygon[i].nodes[2]].node - node[polygon[i].nodes[0]].node, node[polygon[i].nodes[1]].node - node[polygon[i].nodes[0]].node));
 					polygon[i].h.surface = surface(node[polygon[i].nodes[0]].node, node[polygon[i].nodes[1]].node, node[polygon[i].nodes[2]].node);
 				}
 			}
@@ -104,7 +104,7 @@ bool Mesh::loadOff(std::string filename){
 		} //error handling because line is missing
 		modelfile.close();
 		for (int i = 0; i < nodes; i++) {//Normalize vertex normal vectors
-			node[i].normal = this->normalizevector(node[i].normal);
+			node[i].normal = glm::normalize(node[i].normal);
 			{ //Calculate spherical texture coordinates
 				const GLfloat pi = 3.1415926f; //TODO find optimal algorithm
 				GLfloat modlength = 2.0f * sqrtf(node[i].normal[0] * node[i].normal[0] + node[i].normal[1] * node[i].normal[1] + (1.0f + node[i].normal[2]) * (1.0f + node[i].normal[2]));
@@ -222,7 +222,7 @@ void Mesh::render(){
 	}
 }
 
-vec3 Mesh::normalizevector(vec3 vector){
+/*vec3 Mesh::normalizevector(vec3 vector){
 	vec3 v = vec3(vector.x, vector.y, vector.z);
 	GLfloat scale = v.x * v.x + v.y * v.y + v.z * v.z;
 	int integer = 0x5f3759df - (*(long*)&scale >> 1); //Using the fast inverse square root algorithm
@@ -244,12 +244,12 @@ float Mesh::dot(vec3 v1, vec3 v2){
 
 float Mesh::length(vec3 v){
 	return sqrtf(dot(v, v));
-}
+}*/
 
 float Mesh::surface(vec3 v1, vec3 v2, vec3 v3){
-	float la = length(v1 - v2);
-	float lb = length(v2 - v3);
-	float lc = length(v3 - v1);
+	float la = glm::length(v1 - v2);
+	float lb = glm::length(v2 - v3);
+	float lc = glm::length(v3 - v1);
 	float halfu = 0.5f * (la + lb + lc);
 	return sqrtf(halfu*(halfu - la)*(halfu - lb)*(halfu - lc));
 }

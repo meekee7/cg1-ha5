@@ -20,7 +20,7 @@ using namespace glm;
 #endif
 
 
-float determinant(mat3 mat){
+/*float determinant(mat3 mat){
 	return (mat[0][0] * mat[1][1] * mat[2][2] + mat[0][1] * mat[1][2] * mat[2][0] + mat[0][2] * mat[1][0] * mat[2][1])
 		- (mat[0][2] * mat[1][1] * mat[2][0] + mat[0][1] * mat[1][0] * mat[2][2] + mat[0][0] * mat[1][2] * mat[2][1]);
 }
@@ -39,7 +39,7 @@ float dot(vec3 v1, vec3 v2){
 
 //Erste drei Einträge Schnittpunkt, letzer Eintrag Distanz, 0,0,0,-1 wenn kein Schnitt
 vec4 rayhittriangle(Ray ray, vec3 trix, vec3 triy, vec3 triz){
-	/*vec3 u = triy - trix; //http://cgvr.cs.uni-bremen.de/teaching/cg2_10/folien/07_raytracing_2.pdf
+	{vec3 u = triy - trix; //http://cgvr.cs.uni-bremen.de/teaching/cg2_10/folien/07_raytracing_2.pdf
 	vec3 v = triz - trix;
 	vec3 w = ray.o - trix;
 	vec3 crossdv = cross(ray.d, v);
@@ -48,8 +48,8 @@ vec4 rayhittriangle(Ray ray, vec3 trix, vec3 triy, vec3 triz){
 	if (0 < hitpoint.x < 1 && 0 < hitpoint.z < 1 && hitpoint.x + hitpoint.z <= 1)
 	return vec4(hitpoint, 1 - hitpoint.x - hitpoint.z);
 	else
-	return vec4(0, 0, 0, -1);*/
-	/*//Vorlesungsfolien
+	return vec4(0, 0, 0, -1);}
+{//Vorlesungsfolien
 	float det = 1.0f / determinant(mat3(-ray.d, triy - trix, triz - trix));
 	float t = det*dot(cross(ray.o - trix, triy - trix), triz - trix);
 	float u = det*dot(cross(ray.d, triz - trix), ray.o - trix);
@@ -57,8 +57,9 @@ vec4 rayhittriangle(Ray ray, vec3 trix, vec3 triy, vec3 triz){
 	if (0 < u < 1 && 0 < v<1 && t>0)
 	return vec4(u, v, u + v, t);
 	else
-	return vec4(0, 0, 0, -1);*/
-	vec3 normal = cross(triz - trix, triy - trix); //http://uninformativ.de/bin/RaytracingSchnitttests-76a577a-CC-BY.pdf
+	return vec4(0, 0, 0, -1);
+	}
+	{vec3 normal = cross(triz - trix, triy - trix); //http://uninformativ.de/bin/RaytracingSchnitttests-76a577a-CC-BY.pdf
 	float d = dot(normal, trix);
 	float rn = dot(normal, ray.d);
 	if (rn == 0.0f) // If we do not catch division by zero, then we get invalid results
@@ -85,8 +86,8 @@ vec4 rayhittriangle(Ray ray, vec3 trix, vec3 triy, vec3 triz){
 		return vec4(0, 0, 0, -1);
 	else
 		return vec4(q, alpha1);
-
-}
+		}
+}*/
 
 // global variables //////////////////////////////////////////
 int _id_window, _id_screen, _id_world;
