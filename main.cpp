@@ -152,7 +152,7 @@ void clear_rays()
 // Create rays for each sample of the image
 void create_primary_rays(std::vector<Ray>& rays, int resx, int resy)
 {
-	mat4 mvi = glm::inverse(modelview);
+	/*mat4 mvi = glm::inverse(modelview);
 	mat4 mvt = glm::transpose(modelview);
 	mat4 mv2t = glm::transpose(modelview2);
 	for (int x = 0; x < resx; x++)
@@ -171,7 +171,7 @@ void create_primary_rays(std::vector<Ray>& rays, int resx, int resy)
 			vec3 planepos = vec3(planeposh.x / planeposh.w, planeposh.y / planeposh.w, planeposh.z / planeposh.w);
 			glm::normalize(direction);
 			rays.push_back(Ray(planepos, direction));
-		}
+		}*/
 	// TODO!
 	double startX, startY, startZ, endX, endY, endZ;
 	// Get the Projection and Model View Matrices for gluUnProject
@@ -229,7 +229,7 @@ void ray_trace()
 	rayTracedImage.resize(w*h, vec3(0, 1, 0));
 
 	// TODO : write the samples with the correct color (i.e raytrace)
-#pragma omp parallel for
+/*#pragma omp parallel for
 	for (int coord = 0; coord < w*h; coord++){
 		Hitresult* hit = mesh->intersectModel(&rays.at(coord));
 		if (hit == nullptr)
@@ -237,8 +237,8 @@ void ray_trace()
 		else
 			rayTracedImage[coord] = vec3(0, 1, 0);
 		delete hit;
-	}
-	/*#pragma omp parallel for
+	}*/
+	#pragma omp parallel for
 		for (int x = 0; x < w; x++)
 		for (int y = 0; y < h; y++){
 		int coord = x + y*h; 
@@ -248,7 +248,7 @@ void ray_trace()
 		else
 		rayTracedImage[coord] = vec3(0, 1, 0);
 		delete hit;
-		}*/
+		}
 	/*for (int i = 0; i < w; i++)
 	{
 	for (int j = 0; j < h; j++)
@@ -693,7 +693,7 @@ int main(int argc, char** argv)
 	}
 	//Test some stuff
 	//Mesh* mesh = new Mesh(); //When testing, then turn off centralization and distance normalization in the model loader
-	mesh->loadOff("scenedata/drei.off");
+	*/mesh->loadOff("scenedata/drei.off");
 	Ray* ray = new Ray(vec3(0, 0, 0), vec3(1, 0, 0));
 	Hitresult* hit = mesh->intersectpolygon(mesh->polygon[0], ray);
 	if (hit == nullptr)
@@ -702,7 +702,7 @@ int main(int argc, char** argv)
 		std::cout << "Distance " << hit->distance << "\n";
 		std::cout << "Hitpoint " << hit->reflectray->o.x << " " << hit->reflectray->o.y << " " << hit->reflectray->o.z << "\n";
 		std::cout << "Reflection " << hit->reflectray->d.x << " " << hit->reflectray->d.y << " " << hit->reflectray->d.z << "\n";
-	}*/
+	}
 	// Init OpenGL stuffs
 	glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
 	glutInitWindowSize(1024, 600);

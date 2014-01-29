@@ -51,7 +51,7 @@ bool Mesh::loadOff(std::string filename){
 				modelfile.close();
 				return false;
 			} //error handling because line is missing
-			{ //Center the model
+			if (0){ //Center the model
 				vec3 sum = vec3(0, 0, 0);
 				for (int i = 0; i < nodes; i++)
 					sum += node[i].node;
@@ -59,7 +59,7 @@ bool Mesh::loadOff(std::string filename){
 				for (int i = 0; i < nodes; i++)
 					node[i].node -= sum;
 			}
-			{ //Normalize the distance
+			if (0){ //Normalize the distance
 				GLfloat avg = 0;
 				for (int i = 0; i < nodes; i++)
 					avg += std::sqrt(node[i].node.x * node[i].node.x + node[i].node.y * node[i].node.y + node[i].node.z * node[i].node.z);
