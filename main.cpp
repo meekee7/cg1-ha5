@@ -156,22 +156,22 @@ void create_primary_rays(std::vector<Ray>& rays, int resx, int resy)
 	mat4 mvt = glm::transpose(modelview);
 	mat4 mv2t = glm::transpose(modelview2);
 	for (int x = 0; x < resx; x++)
-		for (int y = 0; y < resy; y++){ //For values see draw_camera
-			float planew = 1;
-			float planex = ((float)x / resx) * 2 - 1;
-			float planey = ((float)y / resy) * 2 - 1;
-			float planez = -2;
-			vec4 planeposh(planex, planey, planez, planew);
-			vec4 directionh = planeposh;
-			planeposh = mvi * planeposh;
-			directionh = mvt * directionh;
-			planeposh = modelview2_inv * planeposh;
-			directionh = mv2t * directionh;
-			vec3 direction = vec3(directionh.x / directionh.w, directionh.y / directionh.w, direction.z / directionh.w);
-			vec3 planepos = vec3(planeposh.x / planeposh.w, planeposh.y / planeposh.w, planeposh.z / planeposh.w);
-			glm::normalize(direction);
-			rays.push_back(Ray(planepos, direction));
-		}*/
+	for (int y = 0; y < resy; y++){ //For values see draw_camera
+	float planew = 1;
+	float planex = ((float)x / resx) * 2 - 1;
+	float planey = ((float)y / resy) * 2 - 1;
+	float planez = -2;
+	vec4 planeposh(planex, planey, planez, planew);
+	vec4 directionh = planeposh;
+	planeposh = mvi * planeposh;
+	directionh = mvt * directionh;
+	planeposh = modelview2_inv * planeposh;
+	directionh = mv2t * directionh;
+	vec3 direction = vec3(directionh.x / directionh.w, directionh.y / directionh.w, direction.z / directionh.w);
+	vec3 planepos = vec3(planeposh.x / planeposh.w, planeposh.y / planeposh.w, planeposh.z / planeposh.w);
+	glm::normalize(direction);
+	rays.push_back(Ray(planepos, direction));
+	}*/
 	// TODO!
 	double startX, startY, startZ, endX, endY, endZ;
 	// Get the Projection and Model View Matrices for gluUnProject
@@ -180,7 +180,7 @@ void create_primary_rays(std::vector<Ray>& rays, int resx, int resy)
 	int viewport[4];
 	vec3 startVec;
 	vec3 endVec;
-	
+
 	glGetDoublev(GL_MODELVIEW_MATRIX, modelViewMat);
 	glGetDoublev(GL_PROJECTION_MATRIX, projViewMat);
 	glGetIntegerv(GL_VIEWPORT, viewport);
@@ -208,7 +208,7 @@ void create_primary_rays(std::vector<Ray>& rays, int resx, int resy)
 			rays.push_back(ray);
 		}
 	}
-	
+
 }
 
 // Ray trace the scene
@@ -229,25 +229,25 @@ void ray_trace()
 	rayTracedImage.resize(w*h, vec3(0, 1, 0));
 
 	// TODO : write the samples with the correct color (i.e raytrace)
-/*#pragma omp parallel for
-	for (int coord = 0; coord < w*h; coord++){
-		Hitresult* hit = mesh->intersectModel(&rays.at(coord));
-		if (hit == nullptr)
-			rayTracedImage[coord] = vec3(0, 0, 0);
-		else
-			rayTracedImage[coord] = vec3(0, 1, 0);
-		delete hit;
-	}*/
-	#pragma omp parallel for
-		for (int x = 0; x < w; x++)
-		for (int y = 0; y < h; y++){
-		int coord = x + y*h; 
+	/*#pragma omp parallel for
+		for (int coord = 0; coord < w*h; coord++){
 		Hitresult* hit = mesh->intersectModel(&rays.at(coord));
 		if (hit == nullptr)
 		rayTracedImage[coord] = vec3(0, 0, 0);
 		else
 		rayTracedImage[coord] = vec3(0, 1, 0);
 		delete hit;
+		}*/
+#pragma omp parallel for
+	for (int x = 0; x < w; x++)
+		for (int y = 0; y < h; y++){
+			int coord = x + y*h;
+			Hitresult* hit = mesh->intersectModel(&rays.at(coord));
+			if (hit == nullptr)
+				rayTracedImage[coord] = vec3(0, 0, 0);
+			else
+				rayTracedImage[coord] = vec3(0, 1, 0);
+			delete hit;
 		}
 	/*for (int i = 0; i < w; i++)
 	{
@@ -688,58 +688,58 @@ int main(int argc, char** argv)
 {
 	/*for (int x = 0; x < 7; x++){
 		for (int y = 0; y < 10; y++)
-			cout << (x * 7 + y) << " ";
+		cout << (x * 7 + y) << " ";
 		cout << "\n";
-	}
-	//Test some stuff
-	//Mesh* mesh = new Mesh(); //When testing, then turn off centralization and distance normalization in the model loader
-	*/mesh->loadOff("scenedata/drei.off");
-	Ray* ray = new Ray(vec3(0, 0, 0), vec3(1, 0, 0));
-	Hitresult* hit = mesh->intersectpolygon(mesh->polygon[0], ray);
-	if (hit == nullptr)
-		std::cout << "No hit\n";
-	else{
-		std::cout << "Distance " << hit->distance << "\n";
-		std::cout << "Hitpoint " << hit->reflectray->o.x << " " << hit->reflectray->o.y << " " << hit->reflectray->o.z << "\n";
-		std::cout << "Reflection " << hit->reflectray->d.x << " " << hit->reflectray->d.y << " " << hit->reflectray->d.z << "\n";
-	}
-	// Init OpenGL stuffs
-	glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
-	glutInitWindowSize(1024, 600);
-	glutInitWindowPosition(50, 50);
-	glutInit(&argc, argv);
+		}
+		//Test some stuff
+		//Mesh* mesh = new Mesh(); //When testing, then turn off centralization and distance normalization in the model loader
+		*/mesh->loadOff("scenedata/drei.off");
+Ray* ray = new Ray(vec3(0, 0, 0), vec3(1, 0, 0));
+Hitresult* hit = mesh->intersectpolygon(mesh->polygon[0], ray);
+if (hit == nullptr)
+std::cout << "No hit\n";
+else{
+	std::cout << "Distance " << hit->distance << "\n";
+	std::cout << "Hitpoint " << hit->reflectray->o.x << " " << hit->reflectray->o.y << " " << hit->reflectray->o.z << "\n";
+	std::cout << "Reflection " << hit->reflectray->d.x << " " << hit->reflectray->d.y << " " << hit->reflectray->d.z << "\n";
+}
+// Init OpenGL stuffs
+glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
+glutInitWindowSize(1024, 600);
+glutInitWindowPosition(50, 50);
+glutInit(&argc, argv);
 
-	// Create main window
-	_id_window = glutCreateWindow("cg1 ex5 ws13/14 - raytracing");
-	glutReshapeFunc(main_reshape);
-	glutDisplayFunc(main_display);
-	glutKeyboardFunc(main_keyboard);
+// Create main window
+_id_window = glutCreateWindow("cg1 ex5 ws13/14 - raytracing");
+glutReshapeFunc(main_reshape);
+glutDisplayFunc(main_display);
+glutKeyboardFunc(main_keyboard);
 
-	glutIdleFunc(idle);
+glutIdleFunc(idle);
 
-	// Create world window
-	_id_world = glutCreateSubWindow(_id_window, _win_gap, _win_gap, _win_w, _win_h);
-	glutReshapeFunc(world_reshape);
-	glutDisplayFunc(world_display);
-	glutMouseFunc(world_mouse);
-	glutMotionFunc(world_motion);
-	glutKeyboardFunc(main_keyboard);
-	glutCreateMenu(world_menu);
-	glutAttachMenu(GLUT_RIGHT_BUTTON);
+// Create world window
+_id_world = glutCreateSubWindow(_id_window, _win_gap, _win_gap, _win_w, _win_h);
+glutReshapeFunc(world_reshape);
+glutDisplayFunc(world_display);
+glutMouseFunc(world_mouse);
+glutMotionFunc(world_motion);
+glutKeyboardFunc(main_keyboard);
+glutCreateMenu(world_menu);
+glutAttachMenu(GLUT_RIGHT_BUTTON);
 
-	// Create view window
-	_id_screen = glutCreateSubWindow(_id_window, _win_gap + _win_w + _win_gap, _win_gap, _win_w, _win_h);
-	glutReshapeFunc(screen_reshape);
-	glutDisplayFunc(screen_display);
-	glutMouseFunc(screen_mouse);
-	glutMotionFunc(screen_motion);
-	glutPassiveMotionFunc(screen_passive_motion);
-	glutKeyboardFunc(main_keyboard);
-	glutCreateMenu(screen_menu);
-	redisplay_all();
+// Create view window
+_id_screen = glutCreateSubWindow(_id_window, _win_gap + _win_w + _win_gap, _win_gap, _win_w, _win_h);
+glutReshapeFunc(screen_reshape);
+glutDisplayFunc(screen_display);
+glutMouseFunc(screen_mouse);
+glutMotionFunc(screen_motion);
+glutPassiveMotionFunc(screen_passive_motion);
+glutKeyboardFunc(main_keyboard);
+glutCreateMenu(screen_menu);
+redisplay_all();
 
-	glutMainLoop();
+glutMainLoop();
 
-	return 0;
+return 0;
 }
 
