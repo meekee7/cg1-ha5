@@ -125,6 +125,7 @@ float _world_roty = -35;
 
 
 std::vector<Ray> rays;
+std::vector<vec3> hitpoints;
 std::vector<vec3> rayTracedImage;
 GLuint rayTracedImageId = 0;
 
@@ -222,6 +223,7 @@ void ray_trace()
 	//create_primary_rays(rays, w, h);
 
 	rayTracedImage.clear();
+	hitpoints.clear();
 	rayTracedImage.resize(w*h, vec3(0, 1, 0));
 	cout << "ray creation\n";
 	for (float y = 0; y < _win_h; y += 1.0f / _sample_factor)
@@ -235,8 +237,13 @@ void ray_trace()
 		ray->o = (vec3)(glm::inverse(modelview)*vec4(ray->o, 1));
 		ray->d = (vec3)(glm::inverse(modelview)*vec4(ray->d, 0));
 		Hitresult* hit = scene->intersectscene(&rays.at(coord));
-		rayTracedImage[coord] = hit == nullptr ? vec3(0, 0, 0) : hit->ambcolour;
-		delete hit;
+		if (hit == nullptr)
+			rayTracedImage[coord] = vec3(0, 0, 0);
+		else {
+			rayTracedImage[coord] = hit->ambcolour;
+			hitpoints.push_back(hit->reflectray->o);
+			delete hit;
+		}
 	}
 
 	// Create an openGL texture if it doesn't exist allready
@@ -257,6 +264,13 @@ void ray_trace()
 // Draw the rays shot on the scene
 void draw_rays()
 {
+	for (int i = 0; i < hitpoints.size(); i++){
+		vec3 point = hitpoints.at(i);
+		glColor3ub(0, 255, 0);
+		glBegin(GL_POINTS); {
+			glVertex3f(point.x, point.y, point.z);
+		}glEnd();
+	}
 }
 
 // drawing utilities //////////////////////////////////
