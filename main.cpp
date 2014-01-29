@@ -8,7 +8,9 @@
 
 #include "Ray.h"
 #include "Mesh.h"
+#include "Hitresult.h"
 
+#include <omp.h>
 #include <glm/glm.hpp>
 
 using namespace glm;
@@ -19,26 +21,26 @@ using namespace glm;
 #include <GL/glut.h>
 #endif
 
-
+Mesh* mesh = new Mesh();
 /*float determinant(mat3 mat){
 	return (mat[0][0] * mat[1][1] * mat[2][2] + mat[0][1] * mat[1][2] * mat[2][0] + mat[0][2] * mat[1][0] * mat[2][1])
-		- (mat[0][2] * mat[1][1] * mat[2][0] + mat[0][1] * mat[1][0] * mat[2][2] + mat[0][0] * mat[1][2] * mat[2][1]);
-}
+	- (mat[0][2] * mat[1][1] * mat[2][0] + mat[0][1] * mat[1][0] * mat[2][2] + mat[0][0] * mat[1][2] * mat[2][1]);
+	}
 
-float determinant(mat2 mat){
+	float determinant(mat2 mat){
 	return mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0];
-}
+	}
 
-vec3 cross(vec3 v1, vec3 v2){
+	vec3 cross(vec3 v1, vec3 v2){
 	return vec3(v1.y*v2.z - v1.z*v2.y, v1.z*v2.x - v1.x*v2.z, v1.x*v2.y - v1.y*v2.x);
-}
+	}
 
-float dot(vec3 v1, vec3 v2){
+	float dot(vec3 v1, vec3 v2){
 	return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
-}
+	}
 
-//Erste drei Einträge Schnittpunkt, letzer Eintrag Distanz, 0,0,0,-1 wenn kein Schnitt
-vec4 rayhittriangle(Ray ray, vec3 trix, vec3 triy, vec3 triz){
+	//Erste drei Einträge Schnittpunkt, letzer Eintrag Distanz, 0,0,0,-1 wenn kein Schnitt
+	vec4 rayhittriangle(Ray ray, vec3 trix, vec3 triy, vec3 triz){
 	{vec3 u = triy - trix; //http://cgvr.cs.uni-bremen.de/teaching/cg2_10/folien/07_raytracing_2.pdf
 	vec3 v = triz - trix;
 	vec3 w = ray.o - trix;
@@ -49,7 +51,7 @@ vec4 rayhittriangle(Ray ray, vec3 trix, vec3 triy, vec3 triz){
 	return vec4(hitpoint, 1 - hitpoint.x - hitpoint.z);
 	else
 	return vec4(0, 0, 0, -1);}
-{//Vorlesungsfolien
+	{//Vorlesungsfolien
 	float det = 1.0f / determinant(mat3(-ray.d, triy - trix, triz - trix));
 	float t = det*dot(cross(ray.o - trix, triy - trix), triz - trix);
 	float u = det*dot(cross(ray.d, triz - trix), ray.o - trix);
@@ -63,7 +65,7 @@ vec4 rayhittriangle(Ray ray, vec3 trix, vec3 triy, vec3 triz){
 	float d = dot(normal, trix);
 	float rn = dot(normal, ray.d);
 	if (rn == 0.0f) // If we do not catch division by zero, then we get invalid results
-		return vec4(0, 0, 0, -1);
+	return vec4(0, 0, 0, -1);
 	float alpha1 = (d - dot(ray.o, normal)) / rn;
 	vec3 q = ray.o + alpha1*ray.d;
 	vec3 b = triy - trix;
@@ -83,11 +85,11 @@ vec4 rayhittriangle(Ray ray, vec3 trix, vec3 triy, vec3 triz){
 	float gamma = dot(ugamma, q) + kgamma;
 	float alpha = 1 - beta - gamma;
 	if (alpha1 <= 0.0f || beta < 0.0f || gamma < 0.0f || alpha < 0.0f)
-		return vec4(0, 0, 0, -1);
+	return vec4(0, 0, 0, -1);
 	else
-		return vec4(q, alpha1);
-		}
-}*/
+	return vec4(q, alpha1);
+	}
+	}*/
 
 // global variables //////////////////////////////////////////
 int _id_window, _id_screen, _id_world;
@@ -150,6 +152,26 @@ void clear_rays()
 // Create rays for each sample of the image
 void create_primary_rays(std::vector<Ray>& rays, int resx, int resy)
 {
+	mat4 mvi = glm::inverse(modelview);
+	mat4 mvt = glm::transpose(modelview);
+	mat4 mv2t = glm::transpose(modelview2);
+	for (int x = 0; x < resx; x++)
+		for (int y = 0; y < resy; y++){ //For values see draw_camera
+			float planew = 1;
+			float planex = ((float)x / resx) * 2 - 1;
+			float planey = ((float)y / resy) * 2 - 1;
+			float planez = -2;
+			vec4 planeposh(planex, planey, planez, planew);
+			vec4 directionh = planeposh;
+			planeposh = mvi * planeposh;
+			directionh = mvt * directionh;
+			planeposh = modelview2_inv * planeposh;
+			directionh = mv2t * directionh;
+			vec3 direction = vec3(directionh.x / directionh.w, directionh.y / directionh.w, direction.z / directionh.w);
+			vec3 planepos = vec3(planeposh.x / planeposh.w, planeposh.y / planeposh.w, planeposh.z / planeposh.w);
+			glm::normalize(direction);
+			rays.push_back(Ray(planepos, direction));
+		}
 	// TODO!
 }
 
@@ -171,16 +193,36 @@ void ray_trace()
 	rayTracedImage.resize(w*h, vec3(0, 1, 0));
 
 	// TODO : write the samples with the correct color (i.e raytrace)
-	for (int i = 0; i < w; i++)
-	{
-		for (int j = 0; j < h; j++)
-		{
-			if ((i + j) % 2 == 0)
-			{
-				rayTracedImage[j*w + i] = vec3(1, 0, 0);
-			}
-		}
+#pragma omp parallel for
+	for (int coord = 0; coord < w*h; coord++){
+		Hitresult* hit = mesh->intersectModel(&rays.at(coord));
+		if (hit == nullptr)
+			rayTracedImage[coord] = vec3(0, 0, 0);
+		else
+			rayTracedImage[coord] = vec3(0, 1, 0);
+		delete hit;
 	}
+	/*#pragma omp parallel for
+		for (int x = 0; x < w; x++)
+		for (int y = 0; y < h; y++){
+		int coord = x + y*h; 
+		Hitresult* hit = mesh->intersectModel(&rays.at(coord));
+		if (hit == nullptr)
+		rayTracedImage[coord] = vec3(0, 0, 0);
+		else
+		rayTracedImage[coord] = vec3(0, 1, 0);
+		delete hit;
+		}*/
+	/*for (int i = 0; i < w; i++)
+	{
+	for (int j = 0; j < h; j++)
+	{
+	if ((i + j) % 2 == 0)
+	{
+	rayTracedImage[j*w + i] = vec3(1, 1, 0);
+	}
+	}
+	}*/
 
 	// Create an openGL texture if it doesn't exist allready
 	if (!rayTracedImageId)
@@ -608,16 +650,22 @@ void idle()
 
 int main(int argc, char** argv)
 {
+	/*for (int x = 0; x < 7; x++){
+		for (int y = 0; y < 10; y++)
+			cout << (x * 7 + y) << " ";
+		cout << "\n";
+	}
 	//Test some stuff
-	/*Mesh* mesh = new Mesh(); //When testing, then turn off centralization and distance normalization in the model loader
+	//Mesh* mesh = new Mesh(); //When testing, then turn off centralization and distance normalization in the model loader
 	mesh->loadOff("scenedata/drei.off");
 	Ray* ray = new Ray(vec3(0, 0, 0), vec3(1, 0, 0));
-	Ray* hit = mesh->intersectpolygon(mesh->polygon[0], ray);
+	Hitresult* hit = mesh->intersectpolygon(mesh->polygon[0], ray);
 	if (hit == nullptr)
 		std::cout << "No hit\n";
 	else{
-		std::cout << hit->hitdistance << " " << hit->o.x << " " << hit->o.y << " " << hit->o.z << "\n";
-		std::cout << hit->d.x << " " << hit->d.y << " " << hit->d.z << "\n";
+		std::cout << "Distance " << hit->distance << "\n";
+		std::cout << "Hitpoint " << hit->reflectray->o.x << " " << hit->reflectray->o.y << " " << hit->reflectray->o.z << "\n";
+		std::cout << "Reflection " << hit->reflectray->d.x << " " << hit->reflectray->d.y << " " << hit->reflectray->d.z << "\n";
 	}*/
 	// Init OpenGL stuffs
 	glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);

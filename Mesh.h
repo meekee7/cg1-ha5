@@ -1,6 +1,7 @@
 #include "GLSLShader.h"
 #include "glm\glm.hpp"
 #include "Ray.h"
+#include "Hitresult.h"
 using namespace glm;
 #pragma once
 class Mesh
@@ -17,7 +18,7 @@ public:
 	};
 	void setRenderMode(RenderMode mode);
 	void render();
-	Ray* intersectModel(Ray* ray);
+	Hitresult* intersectModel(Ray* ray);
 
 //private:
 	typedef struct {
@@ -49,5 +50,5 @@ public:
 	//float Mesh::length(vec3 v);
 	float Mesh::surface(vec3 v1, vec3 v2, vec3 v3);
 
-	Ray* intersectpolygon(poly poly, Ray* ray);
+	Hitresult* intersectpolygon(poly poly, Ray* ray);
 };
