@@ -1,4 +1,4 @@
-#include "glm\glm.hpp"
+#include "glm/glm.hpp"
 using namespace glm;
 #pragma once
 class Ray

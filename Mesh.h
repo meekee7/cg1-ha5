@@ -1,5 +1,5 @@
 #include "GLSLShader.h"
-#include "glm\glm.hpp"
+#include "glm/glm.hpp"
 #include "Ray.h"
 #include "Hitresult.h"
 using namespace glm;
@@ -48,7 +48,7 @@ public:
 	//vec3 crossproduct(vec3 v1, vec3 v2);
 	//float dot(vec3 v1, vec3 v2);
 	//float Mesh::length(vec3 v);
-	float Mesh::surface(vec3 v1, vec3 v2, vec3 v3);
+	float surface(vec3 v1, vec3 v2, vec3 v3);
 
 	Hitresult* intersectpolygon(poly poly, Ray* ray);
 };
