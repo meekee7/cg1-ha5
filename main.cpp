@@ -151,6 +151,42 @@ void clear_rays()
 void create_primary_rays(std::vector<Ray>& rays, int resx, int resy)
 {
 	// TODO!
+	double startX, startY, startZ, endX, endY, endZ;
+	// Get the Projection and Model View Matrices for gluUnProject
+	GLdouble modelViewMat[16];
+	GLdouble projViewMat[16];
+	int viewport[4];
+	vec3 startVec;
+	vec3 endVec;
+	
+	glGetDoublev(GL_MODELVIEW_MATRIX, modelViewMat);
+	glGetDoublev(GL_PROJECTION_MATRIX, projViewMat);
+	glGetIntegerv(GL_VIEWPORT, viewport);
+
+	Ray ray;
+	// Finds the Coordinate of the object that is projected to the Image-Plane by the Ray 
+	for (float x = 0; x < _win_w; x += _win_w / resx){
+		for (float y = 0; y < _win_h; y += _win_h / resy){
+			gluUnProject(x, y, 0.0, modelViewMat, projViewMat, viewport, &startX, &startY, &startZ);
+			gluUnProject(x, y, 1.0, modelViewMat, projViewMat, viewport, &endX, &endY, &endZ);
+
+			startVec.x = startX;
+			startVec.y = startY;
+			startVec.z = startZ;
+
+			endVec.x = endX;
+			endVec.y = endY;
+			endVec.z = endZ;
+
+			// direction ray
+			ray.d = endVec - startVec;
+			ray.d = glm::normalize(ray.d);
+
+			ray.o = startVec;
+			rays.push_back(ray);
+		}
+	}
+	
 }
 
 // Ray trace the scene
