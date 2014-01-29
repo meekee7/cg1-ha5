@@ -13,7 +13,8 @@
 
 #include <omp.h>
 #include <glm/glm.hpp>
-
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 using namespace glm;
 using namespace std;
 #ifdef __APPLE__ 
@@ -175,7 +176,7 @@ void create_primary_rays(std::vector<Ray>& rays, int resx, int resy)
 	rays.push_back(Ray(planepos, direction));
 	}*/
 	// TODO!
-	double startX, startY, startZ, endX, endY, endZ;
+	/*double startX, startY, startZ, endX, endY, endZ;
 	// Get the Projection and Model View Matrices for gluUnProject
 	GLdouble modelViewMat[16];
 	GLdouble projViewMat[16];
@@ -187,19 +188,23 @@ void create_primary_rays(std::vector<Ray>& rays, int resx, int resy)
 	glGetDoublev(GL_PROJECTION_MATRIX, projViewMat);
 	glGetIntegerv(GL_VIEWPORT, viewport);
 
-	// Finds the Coordinate of the object that is projected to the Image-Plane by the Ray 
-	for (float x = 0; x < _win_w; x += _win_w / resx){
-		for (float y = 0; y < _win_h; y += _win_h / resy){
-			gluUnProject(x, y, 0.0, modelViewMat, projViewMat, viewport, &startX, &startY, &startZ);
-			gluUnProject(x, y, 1.0, modelViewMat, projViewMat, viewport, &endX, &endY, &endZ);
+	// Finds the Coordinate of the object that is projected to the Image-Plane by the Ray
+	//for (float x = 0; x < _win_w; x += _win_w / resx){
+	//	for (float y = 0; y < _win_h; y += _win_h / resy){
+	for (int x = 0; x < resx; x++)
+	for (int y = 0; y < resy; y++){
+	gluUnProject(x, y, 0.0, modelViewMat, projViewMat, viewport, &startX, &startY, &startZ);
+	gluUnProject(x, y, 1.0, modelViewMat, projViewMat, viewport, &endX, &endY, &endZ);
 
-			startVec = vec3(startX, startY, startZ);
-			endVec = vec3(endX, endY, endZ);
+	startVec = vec3(startX, startY, startZ);
+	endVec = vec3(endX, endY, endZ);
 
-			rays.push_back(Ray(endVec, glm::normalize(endVec - startVec)));
-		}
+	rays.push_back(Ray(endVec, glm::normalize(endVec - startVec)));
 	}
-
+	//}*/
+	vec3 start = glm::unProject(vec3(resx, resy, 0), modelview, projection, glm::make_vec4(viewport));
+	vec3 end = glm::unProject(vec3(resx, resy, 1), modelview, projection, glm::make_vec4(viewport));
+	rays.push_back(Ray(start, glm::normalize(end - start)));
 }
 
 // Ray trace the scene
@@ -214,15 +219,21 @@ void ray_trace()
 
 	std::cout << "raycast: w=" << w << " h=" << h << std::endl;
 
-	create_primary_rays(rays, w, h);
+	//create_primary_rays(rays, w, h);
 
 	rayTracedImage.clear();
 	rayTracedImage.resize(w*h, vec3(0, 1, 0));
-
+	cout << "ray creation\n";
+	for (float y = 0; y < _win_h; y += 1.0f / _sample_factor)
+		for (float x = 0; x < _win_w; x += 1.0f / _sample_factor)
+			create_primary_rays(rays, x, y);
 	// TODO : write the samples with the correct color (i.e raytrace)
+	cout << "raytracing\n";
 #pragma omp parallel for
 	for (int coord = 0; coord < w*h; coord++){
-
+		Ray* ray = &rays.at(coord);
+		ray->o = (vec3)(glm::inverse(modelview)*vec4(ray->o, 1));
+		ray->d = (vec3)(glm::inverse(modelview)*vec4(ray->d, 0));
 		Hitresult* hit = scene->intersectscene(&rays.at(coord));
 		rayTracedImage[coord] = hit == nullptr ? vec3(0, 0, 0) : hit->ambcolour;
 		delete hit;
