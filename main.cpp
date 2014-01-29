@@ -8,6 +8,7 @@
 
 #include "Ray.h"
 #include "Mesh.h"
+#include "Scene.h"
 #include "Hitresult.h"
 
 #include <omp.h>
@@ -22,6 +23,7 @@ using namespace std;
 #endif
 
 Mesh* mesh = new Mesh();
+Scene* scene = new Scene();
 /*float determinant(mat3 mat){
 	return (mat[0][0] * mat[1][1] * mat[2][2] + mat[0][1] * mat[1][2] * mat[2][0] + mat[0][2] * mat[1][0] * mat[2][1])
 	- (mat[0][2] * mat[1][1] * mat[2][0] + mat[0][1] * mat[1][0] * mat[2][2] + mat[0][0] * mat[1][2] * mat[2][1]);
@@ -185,27 +187,16 @@ void create_primary_rays(std::vector<Ray>& rays, int resx, int resy)
 	glGetDoublev(GL_PROJECTION_MATRIX, projViewMat);
 	glGetIntegerv(GL_VIEWPORT, viewport);
 
-	Ray ray;
 	// Finds the Coordinate of the object that is projected to the Image-Plane by the Ray 
 	for (float x = 0; x < _win_w; x += _win_w / resx){
 		for (float y = 0; y < _win_h; y += _win_h / resy){
 			gluUnProject(x, y, 0.0, modelViewMat, projViewMat, viewport, &startX, &startY, &startZ);
 			gluUnProject(x, y, 1.0, modelViewMat, projViewMat, viewport, &endX, &endY, &endZ);
 
-			startVec.x = startX;
-			startVec.y = startY;
-			startVec.z = startZ;
+			startVec = vec3(startX, startY, startZ);
+			endVec = vec3(endX, endY, endZ);
 
-			endVec.x = endX;
-			endVec.y = endY;
-			endVec.z = endZ;
-
-			// direction ray
-			ray.d = endVec - startVec;
-			ray.d = glm::normalize(ray.d);
-
-			ray.o = startVec;
-			rays.push_back(ray);
+			rays.push_back(Ray(endVec, glm::normalize(endVec - startVec)));
 		}
 	}
 
@@ -229,36 +220,13 @@ void ray_trace()
 	rayTracedImage.resize(w*h, vec3(0, 1, 0));
 
 	// TODO : write the samples with the correct color (i.e raytrace)
-	/*#pragma omp parallel for
-		for (int coord = 0; coord < w*h; coord++){
-		Hitresult* hit = mesh->intersectModel(&rays.at(coord));
-		if (hit == nullptr)
-		rayTracedImage[coord] = vec3(0, 0, 0);
-		else
-		rayTracedImage[coord] = vec3(0, 1, 0);
-		delete hit;
-		}*/
 #pragma omp parallel for
-	for (int x = 0; x < w; x++)
-		for (int y = 0; y < h; y++){
-			int coord = x + y*h;
-			Hitresult* hit = mesh->intersectModel(&rays.at(coord));
-			if (hit == nullptr)
-				rayTracedImage[coord] = vec3(0, 0, 0);
-			else
-				rayTracedImage[coord] = vec3(0, 1, 0);
-			delete hit;
-		}
-	/*for (int i = 0; i < w; i++)
-	{
-	for (int j = 0; j < h; j++)
-	{
-	if ((i + j) % 2 == 0)
-	{
-	rayTracedImage[j*w + i] = vec3(1, 1, 0);
+	for (int coord = 0; coord < w*h; coord++){
+
+		Hitresult* hit = scene->intersectscene(&rays.at(coord));
+		rayTracedImage[coord] = hit == nullptr ? vec3(0, 0, 0) : hit->ambcolour;
+		delete hit;
 	}
-	}
-	}*/
 
 	// Create an openGL texture if it doesn't exist allready
 	if (!rayTracedImageId)
@@ -465,12 +433,13 @@ void draw_scene_openGL()
 
 	// TODO :
 	// Draw the preview scene here
-	glBegin(GL_TRIANGLES);
+	scene->renderscenegl();
+	/*glBegin(GL_TRIANGLES);
 	glVertex3f(0, 0, 0);
 	glVertex3f(10, 0, 0);
 	glVertex3f(0, 10, 0);
 	glEnd();
-
+	*/
 	glPopMatrix();
 }
 
@@ -703,6 +672,7 @@ else{
 	std::cout << "Hitpoint " << hit->reflectray->o.x << " " << hit->reflectray->o.y << " " << hit->reflectray->o.z << "\n";
 	std::cout << "Reflection " << hit->reflectray->d.x << " " << hit->reflectray->d.y << " " << hit->reflectray->d.z << "\n";
 }
+scene->loadscenedata();
 // Init OpenGL stuffs
 glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
 glutInitWindowSize(1024, 600);

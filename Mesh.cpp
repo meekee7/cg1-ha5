@@ -208,6 +208,7 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 		float a3 = 0.5f * (s3 + s2 - s1);
 		vec3 hitnormal = a1*node[poly.nodes[0]].normal + a2*node[poly.nodes[1]].normal + a3*node[poly.nodes[2]].normal;
 		hit->reflectray->d = normalize(2.0f * dot(ray->d, hitnormal)*hitnormal - ray->d);
+		hit->ambcolour = vec3(0, 1, 0);
 		return hit;
 	}
 }
