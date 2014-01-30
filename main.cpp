@@ -230,11 +230,12 @@ void ray_trace()
 			create_primary_rays(rays, x, y);
 	// TODO : write the samples with the correct color (i.e raytrace)
 	cout << "raytracing\n";
+	mat4 mvinv = glm::inverse(modelview);
 #pragma omp parallel for
 	for (int coord = 0; coord < w*h; coord++){
 		Ray* ray = &rays.at(coord);
-		ray->o = (vec3)(glm::inverse(modelview)*vec4(ray->o, 1));
-		ray->d = (vec3)(glm::inverse(modelview)*vec4(ray->d, 0));
+		ray->o = (vec3)(mvinv*vec4(ray->o, 1));
+		ray->d = (vec3)(mvinv*vec4(ray->d, 0));
 		Hitresult* hit = scene->intersectscene(&rays.at(coord));
 		if (hit == nullptr)
 			rayTracedImage[coord] = vec3(0, 0, 0);
@@ -244,7 +245,7 @@ void ray_trace()
 			delete hit;
 		}
 	}
-
+	rays.clear();
 	// Create an openGL texture if it doesn't exist allready
 	if (!rayTracedImageId)
 	{
