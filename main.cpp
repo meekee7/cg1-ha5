@@ -240,7 +240,7 @@ void ray_trace()
 			rayTracedImage[coord] = vec3(0, 0, 0);
 		else {
 			rayTracedImage[coord] = hit->ambcolour;
-			hitpoints.push_back(hit->reflectray->o);
+			hitpoints.push_back((vec3)(modelview*vec4(hit->reflectray->o, 1)));
 			delete hit;
 		}
 	}
@@ -685,7 +685,7 @@ int main(int argc, char** argv)
 		cout << "\n";
 		}
 		//Test some stuff
-		 //When testing, then turn off centralization and distance normalization in the model loader
+		//When testing, then turn off centralization and distance normalization in the model loader
 		*/
 	Mesh* mesh = new Mesh();
 	mesh->loadOff("scenedata/drei.off");
