@@ -24,74 +24,6 @@ using namespace std;
 #endif
 
 Scene* scene = new Scene();
-/*float determinant(mat3 mat){
-	return (mat[0][0] * mat[1][1] * mat[2][2] + mat[0][1] * mat[1][2] * mat[2][0] + mat[0][2] * mat[1][0] * mat[2][1])
-	- (mat[0][2] * mat[1][1] * mat[2][0] + mat[0][1] * mat[1][0] * mat[2][2] + mat[0][0] * mat[1][2] * mat[2][1]);
-	}
-
-	float determinant(mat2 mat){
-	return mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0];
-	}
-
-	vec3 cross(vec3 v1, vec3 v2){
-	return vec3(v1.y*v2.z - v1.z*v2.y, v1.z*v2.x - v1.x*v2.z, v1.x*v2.y - v1.y*v2.x);
-	}
-
-	float dot(vec3 v1, vec3 v2){
-	return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
-	}
-
-	//Erste drei Einträge Schnittpunkt, letzer Eintrag Distanz, 0,0,0,-1 wenn kein Schnitt
-	vec4 rayhittriangle(Ray ray, vec3 trix, vec3 triy, vec3 triz){
-	{vec3 u = triy - trix; //http://cgvr.cs.uni-bremen.de/teaching/cg2_10/folien/07_raytracing_2.pdf
-	vec3 v = triz - trix;
-	vec3 w = ray.o - trix;
-	vec3 crossdv = cross(ray.d, v);
-	vec3 crosswu = cross(w, u);
-	vec3 hitpoint = (1 / dot(crossdv, u)) * vec3(dot(crosswu, v), dot(crossdv, w), dot(crosswu, ray.d));
-	if (0 < hitpoint.x < 1 && 0 < hitpoint.z < 1 && hitpoint.x + hitpoint.z <= 1)
-	return vec4(hitpoint, 1 - hitpoint.x - hitpoint.z);
-	else
-	return vec4(0, 0, 0, -1);}
-	{//Vorlesungsfolien
-	float det = 1.0f / determinant(mat3(-ray.d, triy - trix, triz - trix));
-	float t = det*dot(cross(ray.o - trix, triy - trix), triz - trix);
-	float u = det*dot(cross(ray.d, triz - trix), ray.o - trix);
-	float v = det*dot(cross(ray.o - trix, triy - trix), ray.d);
-	if (0 < u < 1 && 0 < v<1 && t>0)
-	return vec4(u, v, u + v, t);
-	else
-	return vec4(0, 0, 0, -1);
-	}
-	{vec3 normal = cross(triz - trix, triy - trix); //http://uninformativ.de/bin/RaytracingSchnitttests-76a577a-CC-BY.pdf
-	float d = dot(normal, trix);
-	float rn = dot(normal, ray.d);
-	if (rn == 0.0f) // If we do not catch division by zero, then we get invalid results
-	return vec4(0, 0, 0, -1);
-	float alpha1 = (d - dot(ray.o, normal)) / rn;
-	vec3 q = ray.o + alpha1*ray.d;
-	vec3 b = triy - trix;
-	vec3 c = triz - trix;
-	float bb = dot(b, b);
-	float bc = dot(b, c);
-	float cc = dot(c, c);
-	float D = 1.0f / (cc*bb - bc*bc);
-	float bbd = bb * D;
-	float bcd = bc * D;
-	float ccd = cc * D;
-	vec3 ubeta = (ccd * b) - (c * bcd);
-	float kbeta = dot(-trix, ubeta);
-	vec3 ugamma = (c *bbd) - (b*bcd);
-	float kgamma = dot(-trix, ugamma);
-	float beta = dot(ubeta, q) + kbeta;
-	float gamma = dot(ugamma, q) + kgamma;
-	float alpha = 1 - beta - gamma;
-	if (alpha1 <= 0.0f || beta < 0.0f || gamma < 0.0f || alpha < 0.0f)
-	return vec4(0, 0, 0, -1);
-	else
-	return vec4(q, alpha1);
-	}
-	}*/
 
 // global variables //////////////////////////////////////////
 int _id_window, _id_screen, _id_world;
@@ -155,53 +87,6 @@ void clear_rays()
 // Create rays for each sample of the image
 void create_primary_rays(std::vector<Ray>& rays, int resx, int resy)
 {
-	/*mat4 mvi = glm::inverse(modelview);
-	mat4 mvt = glm::transpose(modelview);
-	mat4 mv2t = glm::transpose(modelview2);
-	for (int x = 0; x < resx; x++)
-	for (int y = 0; y < resy; y++){ //For values see draw_camera
-	float planew = 1;
-	float planex = ((float)x / resx) * 2 - 1;
-	float planey = ((float)y / resy) * 2 - 1;
-	float planez = -2;
-	vec4 planeposh(planex, planey, planez, planew);
-	vec4 directionh = planeposh;
-	planeposh = mvi * planeposh;
-	directionh = mvt * directionh;
-	planeposh = modelview2_inv * planeposh;
-	directionh = mv2t * directionh;
-	vec3 direction = vec3(directionh.x / directionh.w, directionh.y / directionh.w, direction.z / directionh.w);
-	vec3 planepos = vec3(planeposh.x / planeposh.w, planeposh.y / planeposh.w, planeposh.z / planeposh.w);
-	glm::normalize(direction);
-	rays.push_back(Ray(planepos, direction));
-	}*/
-	// TODO!
-	/*double startX, startY, startZ, endX, endY, endZ;
-	// Get the Projection and Model View Matrices for gluUnProject
-	GLdouble modelViewMat[16];
-	GLdouble projViewMat[16];
-	int viewport[4];
-	vec3 startVec;
-	vec3 endVec;
-
-	glGetDoublev(GL_MODELVIEW_MATRIX, modelViewMat);
-	glGetDoublev(GL_PROJECTION_MATRIX, projViewMat);
-	glGetIntegerv(GL_VIEWPORT, viewport);
-
-	// Finds the Coordinate of the object that is projected to the Image-Plane by the Ray
-	//for (float x = 0; x < _win_w; x += _win_w / resx){
-	//	for (float y = 0; y < _win_h; y += _win_h / resy){
-	for (int x = 0; x < resx; x++)
-	for (int y = 0; y < resy; y++){
-	gluUnProject(x, y, 0.0, modelViewMat, projViewMat, viewport, &startX, &startY, &startZ);
-	gluUnProject(x, y, 1.0, modelViewMat, projViewMat, viewport, &endX, &endY, &endZ);
-
-	startVec = vec3(startX, startY, startZ);
-	endVec = vec3(endX, endY, endZ);
-
-	rays.push_back(Ray(endVec, glm::normalize(endVec - startVec)));
-	}
-	//}*/
 	vec3 start = glm::unProject(vec3(resx, resy, 0), modelview, projection, glm::make_vec4(viewport));
 	vec3 end = glm::unProject(vec3(resx, resy, 1), modelview, projection, glm::make_vec4(viewport));
 	rays.push_back(Ray(start, glm::normalize(end - start)));
@@ -227,12 +112,12 @@ void ray_trace()
 	cout << "ray creation\n";
 	for (float y = 0; y < _win_h; y += 1.0f / _sample_factor)
 		for (float x = 0; x < _win_w; x += 1.0f / _sample_factor)
-			create_primary_rays(rays, x, y);
+			create_primary_rays(rays, (int)x, (int)y);
 	// TODO : write the samples with the correct color (i.e raytrace)
 	cout << "raytracing\n";
 	mat4 mvinv = glm::inverse(modelview);
 #pragma omp parallel for
-	for (int coord = 0; coord < w*h; coord++){
+	for (int coord = 0; coord < w*h; coord++){ //TODO subsampling
 		Ray* ray = &rays.at(coord);
 		ray->o = (vec3)(mvinv*vec4(ray->o, 1));
 		ray->d = (vec3)(mvinv*vec4(ray->d, 0));
@@ -264,7 +149,7 @@ void ray_trace()
 // Draw the rays shot on the scene
 void draw_rays()
 {
-	for (int i = 0; i < hitpoints.size(); i++){
+	for (unsigned int i = 0; i < hitpoints.size(); i++){
 		vec3 point = hitpoints.at(i);
 		glColor3ub(0, 255, 0);
 		glBegin(GL_POINTS); {
@@ -459,12 +344,6 @@ void draw_scene_openGL()
 	// TODO :
 	// Draw the preview scene here
 	scene->renderscenegl();
-	/*glBegin(GL_TRIANGLES);
-	glVertex3f(0, 0, 0);
-	glVertex3f(10, 0, 0);
-	glVertex3f(0, 10, 0);
-	glEnd();
-	*/
 	glPopMatrix();
 }
 
@@ -670,7 +549,6 @@ void main_keyboard(unsigned char key, int x, int y)
 		std::cout << "sampling factor: " << _sample_factor << std::endl;
 		break;
 	}
-
 	redisplay_all();
 }
 

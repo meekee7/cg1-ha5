@@ -35,6 +35,10 @@ public:
 		vec3 node;
 		vec2 tex;
 	} nodestruct;
+	struct {
+		vec3 max;
+		vec3 min;
+	} boundaries;
 	int nodes;
 	int polygons;
 	int edges;
@@ -51,4 +55,6 @@ public:
 	float surface(vec3 v1, vec3 v2, vec3 v3);
 
 	Hitresult* intersectpolygon(poly poly, Ray* ray);
+	bool intersectboundarybox(Ray* ray);
+	void swap(float* a, float*b);
 };

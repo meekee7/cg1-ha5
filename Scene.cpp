@@ -16,12 +16,16 @@ Scene::~Scene()
 }
 
 void Scene::loadscenedata(){
-	objects = 1;
+	objects = 2;
 	sceneobjects = new Mesh*[objects];
 	Mesh* triangle = new Mesh();
 	triangle->loadOff("scenedata/drei.off");
 	triangle->setRenderMode(Mesh::GOURAUD_RENDERER);
 	sceneobjects[0] = triangle;
+	Mesh* cup = new Mesh();
+	cup->loadOff("scenedata/tasse.off");
+	cup->setRenderMode(Mesh::GOURAUD_RENDERER);
+	sceneobjects[1] = cup;
 
 }
 

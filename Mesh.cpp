@@ -51,7 +51,7 @@ bool Mesh::loadOff(std::string filename){
 				modelfile.close();
 				return false;
 			} //error handling because line is missing
-			if (0){ //Center the model
+			{ //Center the model
 				vec3 sum = vec3(0, 0, 0);
 				for (int i = 0; i < nodes; i++)
 					sum += node[i].node;
@@ -59,13 +59,25 @@ bool Mesh::loadOff(std::string filename){
 				for (int i = 0; i < nodes; i++)
 					node[i].node -= sum;
 			}
-			if (0){ //Normalize the distance
+			{ //Normalize the distance
 				GLfloat avg = 0;
 				for (int i = 0; i < nodes; i++)
 					avg += std::sqrt(node[i].node.x * node[i].node.x + node[i].node.y * node[i].node.y + node[i].node.z * node[i].node.z);
 				avg /= nodes;
 				for (int i = 0; i < nodes; i++)
 					node[i].node /= avg;
+			}
+			{ //Calculate boundary box
+				vec3 min = node[0].node;
+				vec3 max = node[0].node;
+				for (int i = 1; i < nodes; i++)
+					for (int j = 0; j<3; j++)
+						if (min[j] > node[i].node[j])
+							min[j] = node[i].node[j];
+						else if (max[j] < node[i].node[j])
+							max[j] = node[i].node[j];
+				this->boundaries.min = min;
+				this->boundaries.max = max;
 			}
 			for (int i = 0; i < polygons; i++)
 				if (getline(modelfile, line)){
@@ -151,22 +163,23 @@ bool Mesh::loadOff(std::string filename){
 	return true;
 }
 
-Hitresult* Mesh::intersectModel(Ray* ray){ //TODO testen und beenden
+Hitresult* Mesh::intersectModel(Ray* ray){
 	int closestpoly = -1;
 	Hitresult* hit = nullptr;
-	for (int i = 0; i < this->polygons; i++){
-		Hitresult* intersect = this->intersectpolygon(polygon[i], ray);
-		if (intersect != nullptr)
-			if (hit == nullptr){
-				hit = intersect;
-				closestpoly = i;
-			}
-			else if (intersect->distance < hit->distance){
-				delete hit;
-				hit = intersect;
-				closestpoly = i;
-			}
-	}
+	if (this->intersectboundarybox(ray))
+		for (int i = 0; i < this->polygons; i++){
+			Hitresult* intersect = this->intersectpolygon(polygon[i], ray);
+			if (intersect != nullptr)
+				if (hit == nullptr){
+					hit = intersect;
+					closestpoly = i;
+				}
+				else if (intersect->distance < hit->distance){
+					delete hit;
+					hit = intersect;
+					closestpoly = i;
+				}
+		}
 	if (hit != nullptr){
 		hit->originmodel = this;
 		hit->originpoly = closestpoly;
@@ -184,6 +197,7 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 	vec3 hitpoint = vec3(t, u, v);
 	float distance = 1 /  (u + v);
 	if (0.0f < t && 0.0f < u && 0.0f < v && ((u+v)<1))*/
+	//http://uninformativ.de/bin/RaytracingSchnitttests-76a577a-CC-BY.pdf
 	float d = dot(poly.h.normal, node[poly.nodes[0]].node);
 	float direction = dot(poly.h.normal, ray->d);
 	if (direction == 0.0f) // If we do not catch division by zero, then we get invalid results
@@ -211,6 +225,42 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 		hit->ambcolour = vec3(0, 1, 0);
 		return hit;
 	}
+}
+
+void Mesh::swap(float* a, float* b){
+	float t = *a;
+	*a = *b;
+	*b = t;
+}
+
+bool Mesh::intersectboundarybox(Ray* ray){
+	vec3 tmin, tmax;
+	tmin.x = (this->boundaries.min.x - ray->o.x) / ray->d.x;
+	tmax.x = (this->boundaries.max.x - ray->o.x) / ray->d.x;
+	if (ray->d.x < 0)
+		swap(&tmin.x, &tmax.x);
+	tmin.y = (this->boundaries.min.y - ray->o.y) / ray->d.y;
+	tmax.y = (this->boundaries.max.y - ray->o.y) / ray->d.y;
+	if (ray->d.y < 0)
+		swap(&tmin.y, &tmax.y);
+	if (tmin.x > tmax.y || tmin.y > tmax.y)
+		return false;
+	if (tmin.y > tmin.x)
+		tmin.x = tmin.y;
+	if (tmax.y < tmax.x)
+		tmax.x = tmax.y;
+	tmin.z = (this->boundaries.min.z - ray->o.z) / ray->d.z;
+	tmax.z = (this->boundaries.max.z - ray->o.z) / ray->d.z;
+	if (ray->d.z < 0)
+		swap(&tmin.z, &tmax.z);
+	if (tmin.x > tmax.z || tmin.z > tmax.x)
+		return false;
+	if (tmin.z > tmin.x)
+		tmin.x = tmin.z;
+	if (tmax.z < tmax.x)
+		tmax.x = tmax.z;
+	return (tmin.x > 0 && tmax.x > 0);
+	//return true; //TODO
 }
 
 void Mesh::setRenderMode(RenderMode mode){
