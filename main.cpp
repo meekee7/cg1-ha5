@@ -74,6 +74,28 @@ int _vis_mode = vis_default;
 
 char* _vis_names[vis_N] = { "raytraced image", "opengl shaded" };
 
+void save() {
+	string filename = "renderedimage.ppm";
+	cout << "Output to " << filename << std::endl;
+	std::ofstream f;
+	f.open(filename.c_str(), std::ios_base::trunc);
+	//f.open(filename.c_str());
+	f << "P3" << std::endl;
+	f << _sample_width << " " << _sample_height << std::endl;
+	f << "255" << std::endl;
+	//for (int i = 0; i < rayTracedImage.size(); i++) {
+	for (int y = _sample_height - 1; y; y--)
+		for (int x = 0; x < _sample_width; x++)	{
+			int i = y*_sample_width + x;
+			f << (int)(rayTracedImage[i].x * 255) << " " << (int)(rayTracedImage[i].y * 255) << " " << (int)(rayTracedImage[i].z * 255);
+			if ((i + 1) % _sample_width != 0)
+				f << " ";
+			else
+				f << std::endl;
+		}
+	f.close();
+	cout << "Output complete\n";
+}
 
 /*********************************************************************/
 // raytracing
@@ -104,8 +126,6 @@ void ray_trace()
 
 	std::cout << "raycast: w=" << w << " h=" << h << std::endl;
 
-	//create_primary_rays(rays, w, h);
-
 	rayTracedImage.clear();
 	hitpoints.clear();
 	rayTracedImage.resize(w*h, vec3(0, 1, 0));
@@ -117,9 +137,6 @@ void ray_trace()
 	// TODO : write the samples with the correct color (i.e raytrace)
 	mat4 mvinv = glm::inverse(modelview);
 #pragma omp parallel for
-	//for (int x = 0; x < w; x++)
-	//for (int y = 0; y < h; y++){
-	//int coord = x + y*w;
 	for (int coord = 0; coord < w*h; coord++){ //TODO subsampling
 		Ray* ray = &rays.at(coord);
 		ray->o = (vec3)(mvinv*vec4(ray->o, 1));
@@ -547,6 +564,7 @@ void main_keyboard(unsigned char key, int x, int y)
 		ray_trace();
 		break;
 	case 'i':
+		save();
 		break;
 	case 's':
 		_sample_factor *= 2;
