@@ -26,7 +26,6 @@ void Scene::loadscenedata(){
 	cup->loadOff("scenedata/tasse.off");
 	cup->setRenderMode(Mesh::GOURAUD_RENDERER);
 	sceneobjects[1] = cup;
-
 }
 
 void Scene::renderscenegl(){

@@ -260,7 +260,6 @@ bool Mesh::intersectboundarybox(Ray* ray){
 	if (tmax.z < tmax.x)
 		tmax.x = tmax.z;
 	return (tmin.x > 0 && tmax.x > 0);
-	//return true; //TODO
 }
 
 void Mesh::setRenderMode(RenderMode mode){

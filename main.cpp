@@ -4,7 +4,7 @@
 #include <sstream>
 #include <vector>
 #include <limits>
-
+#include <ctime>
 
 #include "Ray.h"
 #include "Mesh.h"
@@ -96,8 +96,8 @@ void create_primary_rays(std::vector<Ray>& rays, int resx, int resy)
 void ray_trace()
 {
 	// Number of samples in x and y direction given the sampling factor
-	int w = (int)_sample_factor * _win_w;
-	int h = (int)_sample_factor * _win_h;
+	int w = (int)(_sample_factor * (float)_win_w);
+	int h = (int)(_sample_factor * (float)_win_h);
 
 	_sample_width = w;
 	_sample_height = h;
@@ -109,27 +109,35 @@ void ray_trace()
 	rayTracedImage.clear();
 	hitpoints.clear();
 	rayTracedImage.resize(w*h, vec3(0, 1, 0));
-	cout << "ray creation\n";
-	for (float y = 0; y < _win_h; y += 1.0f / _sample_factor)
-		for (float x = 0; x < _win_w; x += 1.0f / _sample_factor)
+	cout << "Begin raytracing\n";
+	clock_t start = std::clock();
+	for (float y = 0; y < _win_h; y += (1 / _sample_factor))
+		for (float x = 0; x < _win_w; x += (1 / _sample_factor))
 			create_primary_rays(rays, (int)x, (int)y);
 	// TODO : write the samples with the correct color (i.e raytrace)
-	cout << "raytracing\n";
 	mat4 mvinv = glm::inverse(modelview);
 #pragma omp parallel for
+	//for (int x = 0; x < w; x++)
+	//for (int y = 0; y < h; y++){
+	//int coord = x + y*w;
 	for (int coord = 0; coord < w*h; coord++){ //TODO subsampling
 		Ray* ray = &rays.at(coord);
 		ray->o = (vec3)(mvinv*vec4(ray->o, 1));
 		ray->d = (vec3)(mvinv*vec4(ray->d, 0));
 		Hitresult* hit = scene->intersectscene(&rays.at(coord));
+		vec3 fragcolour;
 		if (hit == nullptr)
-			rayTracedImage[coord] = vec3(0, 0, 0);
+			fragcolour = vec3(0, 0, 0);
 		else {
-			rayTracedImage[coord] = hit->ambcolour;
+			fragcolour = hit->ambcolour;
 			hitpoints.push_back((vec3)(modelview*vec4(hit->reflectray->o, 1)));
 			delete hit;
 		}
+		rayTracedImage[coord] = fragcolour;
 	}
+	clock_t stop = std::clock();
+	//double diff = difftime(std::time(nullptr), time);
+	cout << "Rendered in " << stop - start << " milliseconds\n";
 	rays.clear();
 	// Create an openGL texture if it doesn't exist allready
 	if (!rayTracedImageId)
