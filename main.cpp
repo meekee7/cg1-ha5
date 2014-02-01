@@ -76,22 +76,14 @@ char* _vis_names[vis_N] = { "raytraced image", "opengl shaded" };
 
 void save() {
 	string filename = "renderedimage.ppm";
-	cout << "Output to " << filename << std::endl;
+	cout << "Output to " << filename << "\n";
 	std::ofstream f;
 	f.open(filename.c_str(), std::ios_base::trunc);
-	//f.open(filename.c_str());
-	f << "P3" << std::endl;
-	f << _sample_width << " " << _sample_height << std::endl;
-	f << "255" << std::endl;
-	//for (int i = 0; i < rayTracedImage.size(); i++) {
+	f << "P3\n" << _sample_width << " " << _sample_height << "\n255\n";
 	for (int y = _sample_height - 1; y; y--)
 		for (int x = 0; x < _sample_width; x++)	{
-			int i = y*_sample_width + x;
-			f << (int)(rayTracedImage[i].x * 255) << " " << (int)(rayTracedImage[i].y * 255) << " " << (int)(rayTracedImage[i].z * 255);
-			if ((i + 1) % _sample_width != 0)
-				f << " ";
-			else
-				f << std::endl;
+			int i = y * _sample_width + x;
+			f << (int)(rayTracedImage[i].x * 255) << " " << (int)(rayTracedImage[i].y * 255) << " " << (int)(rayTracedImage[i].z * 255) << " ";
 		}
 	f.close();
 	cout << "Output complete\n";
@@ -136,24 +128,29 @@ void ray_trace()
 			create_primary_rays(rays, (int)x, (int)y);
 	// TODO : write the samples with the correct color (i.e raytrace)
 	mat4 mvinv = glm::inverse(modelview);
-#pragma omp parallel for
-	for (int coord = 0; coord < w*h; coord++){ //TODO subsampling
-		Ray* ray = &rays.at(coord);
-		ray->o = (vec3)(mvinv*vec4(ray->o, 1));
-		ray->d = (vec3)(mvinv*vec4(ray->d, 0));
-		Hitresult* hit = scene->intersectscene(&rays.at(coord));
-		vec3 fragcolour;
-		if (hit == nullptr)
-			fragcolour = vec3(0, 0, 0);
-		else {
-			fragcolour = hit->ambcolour;
-			hitpoints.push_back((vec3)(modelview*vec4(hit->reflectray->o, 1)));
-			delete hit;
+	std::srand(15);
+	omp_lock_t lock;
+	omp_init_lock(&lock);
+	#pragma omp parallel for
+	for (int coord = 0; coord < rays.size(); coord++){ 
+			Ray* ray = &rays.at(coord);
+			ray->o = (vec3)(mvinv*vec4(ray->o, 1));
+			ray->d = (vec3)(mvinv*vec4(ray->d, 0));
+			Hitresult* hit = scene->intersectscene(&rays.at(coord));
+			vec3 fragcolour;
+			if (hit == nullptr)
+				fragcolour = vec3(0, 0, 0);
+			else {
+				fragcolour = hit->ambcolour;
+				omp_set_lock(&lock); //Concurrent modification of the hitpoints is troubling
+				hitpoints.push_back((vec3)(modelview*vec4(hit->reflectray->o, 1)));
+				omp_unset_lock(&lock);
+				delete hit;
+			}
+			rayTracedImage[coord] = fragcolour;
 		}
-		rayTracedImage[coord] = fragcolour;
-	}
+	omp_destroy_lock(&lock);
 	clock_t stop = std::clock();
-	//double diff = difftime(std::time(nullptr), time);
 	cout << "Rendered in " << stop - start << " milliseconds\n";
 	rays.clear();
 	// Create an openGL texture if it doesn't exist allready
