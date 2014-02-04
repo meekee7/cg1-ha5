@@ -31,6 +31,7 @@ public:
 		} h;
 	} poly;
 	typedef struct {
+		vec3 hnormal;
 		vec3 normal;
 		vec3 node;
 		vec2 tex;

@@ -6,6 +6,7 @@
 #include <cstring>
 
 #include "Ray.h"
+#include "Light.h"
 using namespace std;
 Mesh::Mesh()
 {
@@ -45,6 +46,7 @@ bool Mesh::loadOff(std::string filename){
 			if (getline(modelfile, line)){
 				std::istringstream istr(line);
 				node[i].normal = vec3(0, 0, 0);
+				node[i].hnormal = vec3(0, 0, 0);
 				istr >> node[i].node.x >> node[i].node.y >> node[i].node.z;
 			}
 			else {
@@ -106,8 +108,10 @@ bool Mesh::loadOff(std::string filename){
 						}
 					}
 					{ //Apply surface normal vector to vertex normal vectors
-						for (int j = 0; j < 3; j++)
+						for (int j = 0; j < 3; j++){
 							node[polygon[i].nodes[j]].normal += polygon[i].normal;
+							node[polygon[i].nodes[j]].hnormal += polygon[i].h.normal;
+						}
 					}
 				}
 				else {
@@ -117,6 +121,7 @@ bool Mesh::loadOff(std::string filename){
 				modelfile.close();
 				for (int i = 0; i < nodes; i++) {//Normalize vertex normal vectors
 					node[i].normal = glm::normalize(node[i].normal);
+					node[i].hnormal = glm::normalize(node[i].hnormal);
 					{ //Calculate spherical texture coordinates
 						const GLfloat pi = 3.1415926f; //TODO find optimal algorithm
 						GLfloat modlength = 2.0f * sqrtf(node[i].normal[0] * node[i].normal[0] + node[i].normal[1] * node[i].normal[1] + (1.0f + node[i].normal[2]) * (1.0f + node[i].normal[2]));
@@ -220,9 +225,29 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 		float a1 = 0.5f * (s1 + s2 - s3);
 		float a2 = 0.5f * (s1 - s2 + s3);
 		float a3 = 0.5f * (s3 + s2 - s1);
-		vec3 hitnormal = a1*node[poly.nodes[0]].normal + a2*node[poly.nodes[1]].normal + a3*node[poly.nodes[2]].normal;
+		vec3 hitnormal =glm::normalize( a1*node[poly.nodes[0]].hnormal + a2*node[poly.nodes[1]].hnormal + a3*node[poly.nodes[2]].hnormal);
 		hit->reflectray->d = normalize(2.0f * dot(ray->d, hitnormal)*hitnormal - ray->d);
-		hit->ambcolour = vec3(0, 1.0f, 0);
+
+		vec3 color = vec3(0, 1, 0);
+		const vec4 specv = vec4(0.7f, 0.7f, 0.7f, 1.0f);
+		const vec4 diffv = vec4(0.6f, 0.6f, 0.6f, 1.0f);
+		const vec4 ambv = vec4(0.3f, 0.3f, 0.3f, 1.0f);
+		//vec3 lightpos = vec3(Light::getlight().position[0], Light::getlight().position[1], Light::getlight().position[2]);
+		vec3 lightpos = vec3(0, 0, -2);
+		float shininess = 128.0f;
+
+		vec3 eye = vec3(0, 5, 20); //see main.cpp
+		vec3 lightdir = glm::normalize(lightpos - hit->reflectray->o);
+		vec3 half = glm::normalize(lightdir + eye);
+		float diffuse = glm::dot(hitnormal, lightdir);
+		diffuse = diffuse < 0.0f ? 0.0f : (diffuse > 1.0f ? 1.0f : diffuse);
+		float halfdnormal = glm::dot(half, hit->reflectray->d);
+		vec4 specular = vec4(0.0f, 0.0f, 0.0f, 0.0f);
+		if (halfdnormal > 0.0f)
+			specular = diffuse * pow(halfdnormal, shininess) * diffv * specv;
+		vec4 lightedcolor = vec4(0.2f * color, 1.0f) * ambv + diffuse*vec4(0.75f * color, 1.0f)*specv + specular;
+
+		hit->ambcolour = (vec3)lightedcolor;
 		return hit;
 	}
 }

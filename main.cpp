@@ -132,14 +132,14 @@ void ray_trace()
 	omp_lock_t lock;
 	omp_init_lock(&lock);
 	#pragma omp parallel for
-	for (int coord = 0; coord < rays.size(); coord++){ 
+	for (int coord = 0; (unsigned int) coord < rays.size(); coord++){ 
 			Ray* ray = &rays.at(coord);
 			ray->o = (vec3)(mvinv*vec4(ray->o, 1));
 			ray->d = (vec3)(mvinv*vec4(ray->d, 0));
 			Hitresult* hit = scene->intersectscene(&rays.at(coord));
 			vec3 fragcolour;
 			if (hit == nullptr)
-				fragcolour = vec3(0, 0, 0);
+				fragcolour = vec3(0.6f, 0.6f, 0.6f);
 			else {
 				fragcolour = hit->ambcolour;
 				omp_set_lock(&lock); //Concurrent modification of the hitpoints is troubling
