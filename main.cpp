@@ -597,8 +597,8 @@ int main(int argc, char** argv)
 		//When testing, then turn off centralization and distance normalization in the model loader
 		*/
 	Mesh* mesh = new Mesh();
-	mesh->loadOff("scenedata/drei.off");
-	Ray* ray = new Ray(vec3(0, 0, 0), vec3(1, 0, 0));
+	mesh->loadOff("scenedata/drei.off",2*IDENTITY4);
+	Ray* ray = new Ray(vec3(-1, 0, 0), vec3(1, 0, 0));
 	Hitresult* hit = mesh->intersectpolygon(mesh->polygon[0], ray);
 	if (hit == nullptr)
 		std::cout << "No hit\n";

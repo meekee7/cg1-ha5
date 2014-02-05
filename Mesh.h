@@ -9,7 +9,7 @@ class Mesh
 public:
 	Mesh();
 	~Mesh();
-	bool loadOff(std::string file);
+	bool loadOff(std::string file, mat4 modelview);
 	void printmesh();
 	enum RenderMode{
 		FLAT_RENDERER,

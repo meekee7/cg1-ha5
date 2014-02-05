@@ -25,7 +25,7 @@ Mesh::~Mesh()
 	delete node;
 }
 
-bool Mesh::loadOff(std::string filename){
+bool Mesh::loadOff(std::string filename, mat4 modelview){
 	ifstream modelfile(filename);
 	if (modelfile.is_open()) {
 		string line; //Using short-circuit-or intentionally here
@@ -69,6 +69,10 @@ bool Mesh::loadOff(std::string filename){
 				avg /= nodes;
 				for (int i = 0; i < nodes; i++)
 					node[i].node /= avg;
+			}
+			{ //Apply model transformation
+				for (int i = 0; i < nodes; i++)
+					node[i].node = (vec3)(modelview * vec4(node[i].node, 1));
 			}
 			{ //Calculate boundary box
 				vec3 min = node[0].node;
@@ -200,57 +204,70 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 	float t = invdet * glm::dot(glm::cross(ray->o - node[poly.nodes[0]].node, v2mv1), v3mv1);
 	float u = invdet * glm::dot(glm::cross(ray->d, v3mv1), ray->o - node[poly.nodes[0]].node);
 	float v = invdet * glm::dot(glm::cross(ray->o - node[poly.nodes[0]].node, v2mv1), ray->d);
-	//vec3 hitpoint = vec3(t, u, v);
-	//float distance = 1 /  (u + v);
-	//if (0.0f < t && 0.0f < u && 0.0f < v && ((u+v)<1))*/
-	//http://uninformativ.de/bin/RaytracingSchnitttests-76a577a-CC-BY.pdf
-	float d = dot(poly.h.normal, node[poly.nodes[0]].node);
-	float direction = dot(poly.h.normal, ray->d);
-	if (direction == 0.0f) // If we do not catch division by zero, then we get invalid results
-		return nullptr;
-	float distance = (d - dot(ray->o, poly.h.normal)) / direction;
-	vec3 hitpoint = ray->att(distance);
-	float beta = dot(poly.h.beta1, hitpoint) + poly.h.beta2;
-	float gamma = dot(poly.h.gamma1, hitpoint) + poly.h.gamma2;
-	float alpha = 1 - beta - gamma;
-	if (direction <= 0.0f || beta < 0.0f || gamma < 0.0f || alpha < 0.0f)
-		return nullptr;
-	else {
-		Hitresult* hit = new Hitresult();
-		hit->reflectray = new Ray();
-		hit->reflectray->o = hitpoint;
-		hit->distance = distance;
-		float s1 = surface(node[poly.nodes[0]].node, node[poly.nodes[1]].node, hitpoint) / poly.h.surface;
-		float s2 = surface(node[poly.nodes[0]].node, node[poly.nodes[2]].node, hitpoint) / poly.h.surface;
-		float s3 = surface(node[poly.nodes[1]].node, node[poly.nodes[2]].node, hitpoint) / poly.h.surface;
-		float a1 = 0.5f * (s1 + s2 - s3);
-		float a2 = 0.5f * (s1 - s2 + s3);
-		float a3 = 0.5f * (s3 + s2 - s1); //TODO fix this
-		vec3 hitnormal = glm::normalize(a1*node[poly.nodes[2]].hnormal + a2*node[poly.nodes[0]].hnormal + a3*node[poly.nodes[1]].hnormal);
-		hit->reflectray->d = normalize(2.0f * dot(ray->d, hitnormal)*hitnormal - ray->d);
+	vec3 hitpoint = vec3(t, u, v);
+	float distance = 1 /  (u + v);
+	if (0.0f < t && 0.0f < u && 0.0f < v && ((u + v) < 1)){
+	Hitresult* hit = new Hitresult();
+	hit->distance = t;
+	hit->reflectray = new Ray();
+	hit->reflectray->o = ray->att(t);
+	hit->reflectray->d = vec3(0);
+	}
 
-		vec3 color = vec3(0, 1, 0);
-		const vec4 specv = vec4(0.7f, 0.7f, 0.7f, 1.0f);
-		const vec4 diffv = vec4(0.6f, 0.6f, 0.6f, 1.0f);
-		const vec4 ambv = vec4(0.3f, 0.3f, 0.3f, 1.0f);
-		vec3 lightpos = vec3(0, 0, -2);
-		float shininess = 16.0f;
-		vec3 eye = vec3(0, 5, 20); //see main.cpp
-		//vec3 normalv = poly.h.normal; //Flat shading
-		vec3 normalv = hitnormal;
+	else return nullptr;*/
+	{	//http://uninformativ.de/bin/RaytracingSchnitttests-76a577a-CC-BY.pdf
+		float d = dot(poly.h.normal, node[poly.nodes[0]].node);
+		float direction = dot(poly.h.normal, ray->d);
+		if (direction == 0.0f) // If we do not catch division by zero, then we get invalid results
+			return nullptr;
+		float distance = (d - dot(ray->o, poly.h.normal)) / direction;
+		vec3 hitpoint = ray->att(distance);
+		float beta = dot(poly.h.beta1, hitpoint) + poly.h.beta2;
+		float gamma = dot(poly.h.gamma1, hitpoint) + poly.h.gamma2;
+		float alpha = 1 - beta - gamma;
+		if (direction <= 0.0f || beta < 0.0f || gamma < 0.0f || alpha < 0.0f)
+			return nullptr;
+		else {
+			Hitresult* hit = new Hitresult();
+			hit->reflectray = new Ray();
+			hit->reflectray->o = hitpoint;
+			hit->distance = distance;
+			float s1 = surface(node[poly.nodes[0]].node, node[poly.nodes[1]].node, hitpoint); // / poly.h.surface;
+			float s2 = surface(node[poly.nodes[0]].node, node[poly.nodes[2]].node, hitpoint); // / poly.h.surface;
+			float s3 = surface(node[poly.nodes[1]].node, node[poly.nodes[2]].node, hitpoint); // / poly.h.surface;
+			/*float a1 = 0.5f * (s1 + s2 - s3);
+			float a2 = 0.5f * (s1 - s2 + s3);
+			float a3 = 0.5f * (s3 + s2 - s1); //TODO fix this
+			*/
+			float a1 = (s1 + s2) / poly.h.surface;
+			float a2 = (s1 + s3) / poly.h.surface;
+			float a3 = (s2 + s3) / poly.h.surface;
+			vec3 hitnormal = glm::normalize(a1*node[poly.nodes[0]].hnormal + a2*node[poly.nodes[1]].hnormal + a3*node[poly.nodes[2]].hnormal);
+			hit->reflectray->d = normalize(2.0f * dot(ray->d, hitnormal)*hitnormal - ray->d);
 
-		vec3 lightdir = glm::normalize(lightpos - hit->reflectray->o);
-		vec3 half = glm::normalize(lightdir + eye);
-		float diffuse = glm::dot(normalv, lightdir);
-		diffuse = diffuse < 0.0f ? 0.0f : (diffuse > 1.0f ? 1.0f : diffuse);
-		float halfdnormal = glm::dot(half, normalv);
-		vec4 specular = vec4(0.0f, 0.0f, 0.0f, 0.0f);
-		if (halfdnormal > 0.0f)
-			specular = diffuse * pow(halfdnormal, shininess) * diffv * specv;
-		vec4 lightedcolor = vec4(0.2f * color, 1.0f) * ambv + diffuse*vec4(0.75f * color, 1.0f)*specv + specular;
+			vec3 color = vec3(0, 1, 0);
+			const vec4 specv = vec4(0.7f, 0.7f, 0.7f, 1.0f);
+			const vec4 diffv = vec4(0.6f, 0.6f, 0.6f, 1.0f);
+			const vec4 ambv = vec4(0.3f, 0.3f, 0.3f, 1.0f);
+			vec3 lightpos = vec3(0, 0, -2);
+			float shininess = 16.0f;
+			vec3 eye = vec3(0, 5, 20); //see main.cpp
+			//vec3 normalv = poly.h.normal; //Flat shading
+			vec3 normalv = hitnormal;
 
-		hit->colour = (vec3)lightedcolor;
-		return hit;
+			vec3 lightdir = glm::normalize(lightpos - hit->reflectray->o);
+			vec3 half = glm::normalize(lightdir + eye);
+			float diffuse = glm::dot(normalv, lightdir);
+			diffuse = diffuse < 0.0f ? 0.0f : (diffuse > 1.0f ? 1.0f : diffuse);
+			float halfdnormal = glm::dot(half, normalv);
+			vec4 specular = vec4(0.0f, 0.0f, 0.0f, 0.0f);
+			if (halfdnormal > 0.0f)
+				specular = diffuse * pow(halfdnormal, shininess) * diffv * specv;
+			vec4 lightedcolor = vec4(0.2f * color, 1.0f) * ambv + diffuse*vec4(0.75f * color, 1.0f)*specv + specular;
+
+			hit->colour = (vec3)lightedcolor;
+			return hit;
+		}
 	}
 }
 

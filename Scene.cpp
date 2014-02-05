@@ -16,14 +16,15 @@ Scene::~Scene()
 }
 
 void Scene::loadscenedata(){
+	mat4 identity = IDENTITY4;
 	objects = 2;
 	sceneobjects = new Mesh*[objects];
 	Mesh* triangle = new Mesh();
-	triangle->loadOff("scenedata/drei.off");
+	triangle->loadOff("scenedata/drei.off", identity);
 	triangle->setRenderMode(Mesh::GOURAUD_RENDERER);
 	sceneobjects[0] = triangle;
 	Mesh* cup = new Mesh();
-	cup->loadOff("scenedata/tasse.off");
+	cup->loadOff("scenedata/tasse.off", identity);
 	cup->setRenderMode(Mesh::GOURAUD_RENDERER);
 	sceneobjects[1] = cup;
 }

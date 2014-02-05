@@ -2,6 +2,7 @@
 #include "Hitresult.h"
 #include "Ray.h"
 #include "Mesh.h"
+#define IDENTITY4 mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
 class Scene
 {
 public:
