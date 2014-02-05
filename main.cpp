@@ -5,6 +5,7 @@
 #include <vector>
 #include <limits>
 #include <ctime>
+#include <cfloat>
 
 #include "Ray.h"
 #include "Mesh.h"
@@ -57,6 +58,7 @@ float _world_roty = -35;
 
 std::vector<Ray> rays;
 std::vector<vec3> hitpoints;
+std::vector<float> depthmap;
 std::vector<vec3> rayTracedImage;
 GLuint rayTracedImageId = 0;
 
@@ -120,7 +122,9 @@ void ray_trace()
 
 	rayTracedImage.clear();
 	hitpoints.clear();
+	depthmap.clear();
 	rayTracedImage.resize(w*h, vec3(0, 1, 0));
+	depthmap.resize(w*h);
 	cout << "Begin raytracing\n";
 	clock_t start = std::clock();
 	for (float y = 0; y < _win_h; y += (1 / _sample_factor))
@@ -128,27 +132,30 @@ void ray_trace()
 			create_primary_rays(rays, (int)x, (int)y);
 	// TODO : write the samples with the correct color (i.e raytrace)
 	mat4 mvinv = glm::inverse(modelview);
-	std::srand(15);
 	omp_lock_t lock;
 	omp_init_lock(&lock);
-	#pragma omp parallel for
-	for (int coord = 0; (unsigned int) coord < rays.size(); coord++){ 
-			Ray* ray = &rays.at(coord);
-			ray->o = (vec3)(mvinv*vec4(ray->o, 1));
-			ray->d = (vec3)(mvinv*vec4(ray->d, 0));
-			Hitresult* hit = scene->intersectscene(&rays.at(coord));
-			vec3 fragcolour;
-			if (hit == nullptr)
-				fragcolour = vec3(0.6f, 0.6f, 0.6f);
-			else {
-				fragcolour = hit->ambcolour;
-				omp_set_lock(&lock); //Concurrent modification of the hitpoints is troubling
-				hitpoints.push_back((vec3)(modelview*vec4(hit->reflectray->o, 1)));
-				omp_unset_lock(&lock);
-				delete hit;
-			}
-			rayTracedImage[coord] = fragcolour;
+#pragma omp parallel for
+	for (int coord = 0; (unsigned int)coord < rays.size(); coord++){
+		Ray* ray = &rays.at(coord);
+		ray->o = (vec3)(mvinv*vec4(ray->o, 1));
+		ray->d = (vec3)(mvinv*vec4(ray->d, 0));
+		Hitresult* hit = scene->intersectscene(&rays.at(coord));
+		vec3 fragcolour;
+		if (hit == nullptr){
+			fragcolour = vec3(0.6f, 0.6f, 0.6f);
+			depthmap[coord] = INFINITY;
 		}
+		else {
+			fragcolour = hit->colour;
+			depthmap[coord] = hit->distance;
+			omp_set_lock(&lock); { //Concurrent modification of the hitpoints is troubling
+				hitpoints.push_back((vec3)(modelview*vec4(hit->reflectray->o, 1)));
+			}omp_unset_lock(&lock);
+			delete hit;
+		}
+		rayTracedImage[coord] = fragcolour;
+	}
+
 	omp_destroy_lock(&lock);
 	clock_t stop = std::clock();
 	cout << "Rendered in " << stop - start << " milliseconds\n";

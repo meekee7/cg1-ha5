@@ -6,7 +6,8 @@
 #include <cstring>
 
 #include "Ray.h"
-#include "Light.h"
+
+#define NONE -1
 using namespace std;
 Mesh::Mesh()
 {
@@ -169,7 +170,7 @@ bool Mesh::loadOff(std::string filename){
 }
 
 Hitresult* Mesh::intersectModel(Ray* ray){
-	int closestpoly = -1;
+	int closestpoly = NONE;
 	Hitresult* hit = nullptr;
 	if (this->intersectboundarybox(ray))
 		for (int i = 0; i < this->polygons; i++){
@@ -199,9 +200,9 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 	float t = invdet * glm::dot(glm::cross(ray->o - node[poly.nodes[0]].node, v2mv1), v3mv1);
 	float u = invdet * glm::dot(glm::cross(ray->d, v3mv1), ray->o - node[poly.nodes[0]].node);
 	float v = invdet * glm::dot(glm::cross(ray->o - node[poly.nodes[0]].node, v2mv1), ray->d);
-	vec3 hitpoint = vec3(t, u, v);
-	float distance = 1 /  (u + v);
-	if (0.0f < t && 0.0f < u && 0.0f < v && ((u+v)<1))*/
+	//vec3 hitpoint = vec3(t, u, v);
+	//float distance = 1 /  (u + v);
+	//if (0.0f < t && 0.0f < u && 0.0f < v && ((u+v)<1))*/
 	//http://uninformativ.de/bin/RaytracingSchnitttests-76a577a-CC-BY.pdf
 	float d = dot(poly.h.normal, node[poly.nodes[0]].node);
 	float direction = dot(poly.h.normal, ray->d);
@@ -224,30 +225,31 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 		float s3 = surface(node[poly.nodes[1]].node, node[poly.nodes[2]].node, hitpoint) / poly.h.surface;
 		float a1 = 0.5f * (s1 + s2 - s3);
 		float a2 = 0.5f * (s1 - s2 + s3);
-		float a3 = 0.5f * (s3 + s2 - s1);
-		vec3 hitnormal =glm::normalize( a1*node[poly.nodes[0]].hnormal + a2*node[poly.nodes[1]].hnormal + a3*node[poly.nodes[2]].hnormal);
+		float a3 = 0.5f * (s3 + s2 - s1); //TODO fix this
+		vec3 hitnormal = glm::normalize(a1*node[poly.nodes[2]].hnormal + a2*node[poly.nodes[0]].hnormal + a3*node[poly.nodes[1]].hnormal);
 		hit->reflectray->d = normalize(2.0f * dot(ray->d, hitnormal)*hitnormal - ray->d);
 
 		vec3 color = vec3(0, 1, 0);
 		const vec4 specv = vec4(0.7f, 0.7f, 0.7f, 1.0f);
 		const vec4 diffv = vec4(0.6f, 0.6f, 0.6f, 1.0f);
 		const vec4 ambv = vec4(0.3f, 0.3f, 0.3f, 1.0f);
-		//vec3 lightpos = vec3(Light::getlight().position[0], Light::getlight().position[1], Light::getlight().position[2]);
 		vec3 lightpos = vec3(0, 0, -2);
-		float shininess = 128.0f;
-
+		float shininess = 16.0f;
 		vec3 eye = vec3(0, 5, 20); //see main.cpp
+		//vec3 normalv = poly.h.normal; //Flat shading
+		vec3 normalv = hitnormal;
+
 		vec3 lightdir = glm::normalize(lightpos - hit->reflectray->o);
 		vec3 half = glm::normalize(lightdir + eye);
-		float diffuse = glm::dot(hitnormal, lightdir);
+		float diffuse = glm::dot(normalv, lightdir);
 		diffuse = diffuse < 0.0f ? 0.0f : (diffuse > 1.0f ? 1.0f : diffuse);
-		float halfdnormal = glm::dot(half, hit->reflectray->d);
+		float halfdnormal = glm::dot(half, normalv);
 		vec4 specular = vec4(0.0f, 0.0f, 0.0f, 0.0f);
 		if (halfdnormal > 0.0f)
 			specular = diffuse * pow(halfdnormal, shininess) * diffv * specv;
 		vec4 lightedcolor = vec4(0.2f * color, 1.0f) * ambv + diffuse*vec4(0.75f * color, 1.0f)*specv + specular;
 
-		hit->ambcolour = (vec3)lightedcolor;
+		hit->colour = (vec3)lightedcolor;
 		return hit;
 	}
 }

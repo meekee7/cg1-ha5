@@ -8,7 +8,7 @@ public:
 	Hitresult();
 	~Hitresult();
 	float distance;
-	vec3 ambcolour;
+	vec3 colour;
 	Ray* reflectray;
 	int originpoly;
 	void* originmodel;
