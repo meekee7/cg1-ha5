@@ -135,7 +135,7 @@ void ray_trace()
 	omp_lock_t lock;
 	omp_init_lock(&lock);
 #pragma omp parallel for
-	for (int coord = 0; (unsigned int)coord < rays.size(); coord++){
+	for (int coord = 0; coord < (int)rays.size(); coord++){
 		Ray* ray = &rays.at(coord);
 		ray->o = (vec3)(mvinv*vec4(ray->o, 1));
 		ray->d = (vec3)(mvinv*vec4(ray->d, 0));
@@ -530,6 +530,7 @@ void screen_passive_motion(int x, int y)
 void screen_menu(int value)
 {
 	redisplay_all();
+	value = 0;
 }
 
 void world_mouse(int button, int state, int x, int y)
@@ -538,6 +539,7 @@ void world_mouse(int button, int state, int x, int y)
 	{
 		_world_oldx = (float)x;
 	}
+	y = 0;
 }
 
 void world_motion(int x, int y)
@@ -546,11 +548,13 @@ void world_motion(int x, int y)
 	_world_oldx = (float)x;
 
 	redisplay_all();
+	y = 0;
 }
 
 void world_menu(int value)
 {
 	redisplay_all();
+	value = 0;
 }
 
 void main_keyboard(unsigned char key, int x, int y)
@@ -580,14 +584,16 @@ void main_keyboard(unsigned char key, int x, int y)
 		break;
 	case 'l':
 		_recursions--;
-		if (_recursions < 0)
-			_recursions = 0;
+		if (_recursions < 1)
+			_recursions = 1;
 		break;
 	case 'L':
 		_recursions++;
 		break;
 	}
 	redisplay_all();
+	x = 0;
+	y = 0;
 }
 
 void idle()
