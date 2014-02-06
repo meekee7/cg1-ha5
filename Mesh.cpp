@@ -204,7 +204,7 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 		hit->distance = t;
 		vec3 origin = ray->att(t);;
 		vec3 hitnormal = glm::normalize(u*node[poly.nodes[1]].hnormal + v*node[poly.nodes[2]].hnormal + (1 - u - v)*node[poly.nodes[0]].hnormal);
-		vec3 direction = normalize(2.0f * dot(ray->d, hitnormal)*hitnormal - ray->d);
+		vec3 direction = glm::normalize(-2.0f * dot(ray->d, hitnormal)*hitnormal - ray->d);
 		hit->reflectray = new Ray(origin, direction, ray->duration - 1);
 
 		vec3 colour;

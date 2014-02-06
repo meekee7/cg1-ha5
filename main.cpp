@@ -612,6 +612,7 @@ int main(int argc, char** argv)
 		*/
 	Mesh* mesh = new Mesh();
 	mesh->loadOff("scenedata/drei.off", 2 * IDENTITY4, new Material(vec3(0, 1, 0)), scene);
+	mesh->printmesh();
 	Ray* ray = new Ray(vec3(-1, 0, 0), vec3(1, 0, 0));
 	Hitresult* hit = mesh->intersectpolygon(mesh->polygon[0], ray);
 	if (hit == nullptr)
