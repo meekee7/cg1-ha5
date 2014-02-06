@@ -134,6 +134,7 @@ void ray_trace()
 	mat4 mvinv = glm::inverse(modelview);
 	omp_lock_t lock;
 	omp_init_lock(&lock);
+	scene->intercounter = 0;
 #pragma omp parallel for
 	for (int coord = 0; coord < (int)rays.size(); coord++){
 		Ray* ray = &rays.at(coord);
@@ -159,6 +160,7 @@ void ray_trace()
 	omp_destroy_lock(&lock);
 	clock_t stop = std::clock();
 	cout << "Rendered in " << stop - start << " milliseconds\n";
+	cout << scene->intercounter << " triangle intersection tests\n";
 	rays.clear();
 	// Create an openGL texture if it doesn't exist allready
 	if (!rayTracedImageId)
@@ -358,6 +360,7 @@ void main_display()
 	text2 << "key s,S\t: +/- sampling factor $2" << _sample_factor << "$0\n";
 	text2 << "key i\t: render image to file\n";
 	text2 << "key l\t: +/- recursion level $2" << _recursions << "$0\n";
+	text2 << "key b\t: enable/disable shadow ($2" << (scene->showshadow ? "enabled" : "disabled") << "$0)\n";
 
 	draw_string(_win_gap, _win_gap + _win_h + _win_gap + 12, text.str());
 	draw_string(2 * _win_gap + _win_w, _win_gap + _win_h + _win_gap + 12, text2.str());
@@ -568,6 +571,7 @@ void main_keyboard(unsigned char key, int x, int y)
 	case 27:
 		exit(0);
 		break;
+	case 32:
 	case 'r':
 		ray_trace();
 		break;
@@ -590,6 +594,10 @@ void main_keyboard(unsigned char key, int x, int y)
 	case 'L':
 		_recursions++;
 		break;
+	case 'b':
+	case 'B':
+		scene->showshadow = !scene->showshadow;
+		break;
 	}
 	redisplay_all();
 	x = 0;
@@ -602,17 +610,9 @@ void idle()
 
 int main(int argc, char** argv)
 {
-	/*for (int x = 0; x < 7; x++){
-		for (int y = 0; y < 10; y++)
-		cout << (x * 7 + y) << " ";
-		cout << "\n";
-		}
-		//Test some stuff
-		//When testing, then turn off centralization and distance normalization in the model loader
-		*/
 	Mesh* mesh = new Mesh();
 	mesh->loadOff("scenedata/drei.off", 2 * IDENTITY4, new Material(vec3(0, 1, 0)), scene);
-	mesh->printmesh();
+	//mesh->printmesh();
 	Ray* ray = new Ray(vec3(-1, 0, 0), vec3(1, 0, 0));
 	Hitresult* hit = mesh->intersectpolygon(mesh->polygon[0], ray);
 	if (hit == nullptr)

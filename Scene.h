@@ -15,6 +15,8 @@ public:
 	void renderscenegl();
 	Light** lights;
 	int numlights;
+	int intercounter;
+	bool showshadow;
 private:
 	Mesh** sceneobjects;
 	int objects;

@@ -9,4 +9,5 @@ public:
 	Light();
 	~Light();
 	vec3 position;
+	unsigned int lightnum;
 };

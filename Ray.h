@@ -17,5 +17,6 @@ public:
 	float tmin;
 	
 	int duration;
+	bool shadowtest;
 };
 

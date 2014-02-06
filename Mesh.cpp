@@ -188,6 +188,8 @@ Hitresult* Mesh::intersectModel(Ray* ray){
 	return hit;
 }
 Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
+	Scene* scene = (Scene*) this->scene;
+	scene->intercounter++;
 	if (glm::dot(ray->d, poly.hnormal) <= 0.0f) //Wrong direction, no chance for a hit
 		return nullptr;
 
@@ -198,7 +200,6 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 	float t = invdet * glm::dot(glm::cross(ray->o - node[poly.nodes[0]].node, v2mv1), v3mv1);
 	float u = invdet * glm::dot(glm::cross(ray->d, v3mv1), ray->o - node[poly.nodes[0]].node);
 	float v = invdet * glm::dot(glm::cross(ray->o - node[poly.nodes[0]].node, v2mv1), ray->d);
-	vec3 hitpoint = vec3(t, u, v);
 	if (0.0f < t && 0.0f < u && 0.0f < v && ((u + v) < 1)){
 		Hitresult* hit = new Hitresult();
 		hit->distance = t;
@@ -207,8 +208,10 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 		vec3 direction = glm::normalize(-2.0f * dot(ray->d, hitnormal)*hitnormal - ray->d);
 		hit->reflectray = new Ray(origin, direction, ray->duration - 1);
 
+		if (ray->shadowtest) //We do not need the rest and avoid endless recursion 
+			return hit;
+
 		vec3 colour;
-		Scene* scene = (Scene*) this->scene;
 		if (!this->material->reflecting)
 			colour = this->material->colour;
 		else{
@@ -236,6 +239,18 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 		for (int i = 0; i < scene->numlights; i++){
 			vec3 lightpos = scene->lights[0]->position;
 			vec3 lightdir = glm::normalize(lightpos - hit->reflectray->o);
+			if (scene->showshadow){ //Shadow
+				Ray* shadowray = new Ray(hit->reflectray->o, lightdir, 1);
+				shadowray->shadowtest = true;
+				Hitresult* shadowhit = scene->intersectscene(shadowray);
+				bool isshadow = shadowhit != nullptr && shadowhit->distance < glm::length(lightpos - hit->reflectray->o);
+				delete shadowhit;
+				delete shadowray;
+				if (isshadow){
+					hit->colour = vec3(0, 0, 0);
+					return hit;
+				}
+			}
 			vec3 half = glm::normalize(lightdir + eye);
 			float diffuse = glm::dot(normalv, lightdir);
 			diffuse = diffuse < 0.0f ? 0.0f : (diffuse > 1.0f ? 1.0f : diffuse);
@@ -293,6 +308,8 @@ void Mesh::setRenderMode(RenderMode mode){
 }
 
 void Mesh::render(){
+	vec3 colour = this->material->reflecting ? BACKGROUND : this->material->colour;
+	glColor3f(colour.x, colour.y, colour.z);
 	switch (rendermode){
 	case FLAT_RENDERER:
 		glShadeModel(GL_FLAT);

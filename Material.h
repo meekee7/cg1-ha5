@@ -1,5 +1,6 @@
 #include "glm/glm.hpp"
 //#include "Scene.h"
+#define MIRRORMAT new Material()
 using namespace glm;
 #pragma once
 class Material
