@@ -24,12 +24,8 @@ public:
 //private:
 	typedef struct {
 		int size;
-		vec3 normal;
+		vec3 normal, hnormal;
 		int* nodes;
-		struct {
-			vec3 gamma1, beta1, normal;
-			float gamma2, beta2, surface;
-		} h;
 	} poly;
 	typedef struct {
 		vec3 hnormal;
@@ -50,11 +46,6 @@ public:
 	void renderFlat();
 	void renderSmooth();
 	void renderTextured();
-	//vec3 normalizevector(vec3 vector);
-	//vec3 crossproduct(vec3 v1, vec3 v2);
-	//float dot(vec3 v1, vec3 v2);
-	//float Mesh::length(vec3 v);
-	float surface(vec3 v1, vec3 v2, vec3 v3);
 
 	Hitresult* intersectpolygon(poly poly, Ray* ray);
 	bool intersectboundarybox(Ray* ray);

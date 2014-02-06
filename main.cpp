@@ -142,12 +142,12 @@ void ray_trace()
 		Hitresult* hit = scene->intersectscene(&rays.at(coord));
 		vec3 fragcolour;
 		if (hit == nullptr){
-			fragcolour = vec3(0.6f, 0.6f, 0.6f);
-			depthmap[coord] = INFINITY;
+			fragcolour = BACKGROUND;
+			//depthmap[coord] = INFINITY;
 		}
 		else {
 			fragcolour = hit->colour;
-			depthmap[coord] = hit->distance;
+			//depthmap[coord] = hit->distance;
 			omp_set_lock(&lock); { //Concurrent modification of the hitpoints is troubling
 				hitpoints.push_back((vec3)(modelview*vec4(hit->reflectray->o, 1)));
 			}omp_unset_lock(&lock);

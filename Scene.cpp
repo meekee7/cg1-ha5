@@ -30,7 +30,7 @@ void Scene::loadscenedata(){
 	sceneobjects[1] = cup;
 	Mesh* planedown = new Mesh();
 	mat = mat4(vec4(10, 0, 0, 0), vec4(0, 10, 0, 0), vec4(0, 0, 10, 0), vec4(0, 0, 0, 1));
-	planedown->loadOff("scenedata/planehori.off", mat);
+	planedown->loadOff("scenedata/planeback.off", mat);
 	planedown->setRenderMode(Mesh::FLAT_RENDERER);
 	planedown->invertnormals();
 	sceneobjects[2] = planedown;

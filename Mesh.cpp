@@ -97,25 +97,12 @@ bool Mesh::loadOff(std::string filename, mat4 modelview){
 						vec3 a = node[polygon[i].nodes[0]].node - node[polygon[i].nodes[1]].node;
 						vec3 b = node[polygon[i].nodes[1]].node - node[polygon[i].nodes[2]].node;
 						polygon[i].normal = glm::normalize(glm::cross(a, b));
-						{
-							vec3 x = node[polygon[i].nodes[1]].node - node[polygon[i].nodes[0]].node;
-							vec3 y = node[polygon[i].nodes[2]].node - node[polygon[i].nodes[0]].node;
-							float xdotx = dot(x, x);
-							float xdoty = dot(x, y);
-							float ydoty = dot(y, y);
-							float D = 1.0f / (ydoty*xdotx - xdoty*xdoty);
-							polygon[i].h.beta1 = (ydoty * D * x) - (y * xdoty * D);
-							polygon[i].h.beta2 = dot(-node[polygon[i].nodes[0]].node, polygon[i].h.beta1);
-							polygon[i].h.gamma1 = (y *xdotx * D) - (x*xdoty*D);
-							polygon[i].h.gamma2 = dot(-node[polygon[i].nodes[0]].node, polygon[i].h.gamma1);
-							polygon[i].h.normal = glm::normalize(glm::cross(node[polygon[i].nodes[2]].node - node[polygon[i].nodes[0]].node, node[polygon[i].nodes[1]].node - node[polygon[i].nodes[0]].node));
-							polygon[i].h.surface = surface(node[polygon[i].nodes[0]].node, node[polygon[i].nodes[1]].node, node[polygon[i].nodes[2]].node);
-						}
+						polygon[i].hnormal = glm::normalize(glm::cross(node[polygon[i].nodes[2]].node - node[polygon[i].nodes[0]].node, node[polygon[i].nodes[1]].node - node[polygon[i].nodes[0]].node));
 					}
 					{ //Apply surface normal vector to vertex normal vectors
 						for (int j = 0; j < 3; j++){
 							node[polygon[i].nodes[j]].normal += polygon[i].normal;
-							node[polygon[i].nodes[j]].hnormal += polygon[i].h.normal;
+							node[polygon[i].nodes[j]].hnormal += polygon[i].hnormal;
 						}
 					}
 				}
@@ -197,6 +184,9 @@ Hitresult* Mesh::intersectModel(Ray* ray){
 	return hit;
 }
 Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
+	if (glm::dot(ray->d, poly.hnormal) <= 0.0f) //Wrong direction, no chance for a hit
+		return nullptr;
+
 	vec3 v2mv1 = node[poly.nodes[1]].node - node[poly.nodes[0]].node;
 	vec3 v3mv1 = node[poly.nodes[2]].node - node[poly.nodes[0]].node;
 	float det = glm::dot(glm::cross(ray->d, v3mv1), v2mv1);
@@ -205,77 +195,38 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 	float u = invdet * glm::dot(glm::cross(ray->d, v3mv1), ray->o - node[poly.nodes[0]].node);
 	float v = invdet * glm::dot(glm::cross(ray->o - node[poly.nodes[0]].node, v2mv1), ray->d);
 	vec3 hitpoint = vec3(t, u, v);
-	float distance = 1 /  (u + v);
 	if (0.0f < t && 0.0f < u && 0.0f < v && ((u + v) < 1)){
 		Hitresult* hit = new Hitresult();
 		hit->distance = t;
 		hit->reflectray = new Ray();
 		hit->reflectray->o = ray->att(t);
-		hit->reflectray->d = vec3(0);
-		//http://uninformativ.de/bin/RaytracingSchnitttests-76a577a-CC-BY.pdf
-		/*
-		float d = dot(poly.h.normal, node[poly.nodes[0]].node);
-		float direction = dot(poly.h.normal, ray->d);
-		if (direction == 0.0f) // If we do not catch division by zero, then we get invalid results
-			return nullptr;
-		float distance = (d - dot(ray->o, poly.h.normal)) / direction;
-		vec3 hitpoint = ray->att(distance);
-		float beta = dot(poly.h.beta1, hitpoint) + poly.h.beta2;
-		float gamma = dot(poly.h.gamma1, hitpoint) + poly.h.gamma2;
-		float alpha = 1 - beta - gamma;
-		*/
-		/*if (direction <= 0.0f || beta < 0.0f || gamma < 0.0f || alpha < 0.0f)
-			return nullptr;
-		else*/ 
-		/*
-			Hitresult* hit = new Hitresult();
-			hit->reflectray = new Ray();
-			hit->reflectray->o = hitpoint;
-			hit->distance = distance;
-			*/
-			/*
-			float s1 = surface(node[poly.nodes[0]].node, node[poly.nodes[1]].node, hitpoint); // / poly.h.surface;
-			float s2 = surface(node[poly.nodes[0]].node, node[poly.nodes[2]].node, hitpoint); // / poly.h.surface;
-			float s3 = surface(node[poly.nodes[1]].node, node[poly.nodes[2]].node, hitpoint); // / poly.h.surface;
-			*/
-			/*float a1 = 0.5f * (s1 + s2 - s3);
-			float a2 = 0.5f * (s1 - s2 + s3);
-			float a3 = 0.5f * (s3 + s2 - s1); //TODO fix this
-			*/
-			
-			/*
-			float a1 = (s1 + s2) / poly.h.surface;
-			float a2 = (s1 + s3) / poly.h.surface;
-			float a3 = (s2 + s3) / poly.h.surface;
-			*/
-			vec3 hitnormal = glm::normalize(u*node[poly.nodes[1]].hnormal + v*node[poly.nodes[2]].hnormal + (1-u-v)*node[poly.nodes[0]].hnormal);
-			hit->reflectray->d = normalize(2.0f * dot(ray->d, hitnormal)*hitnormal - ray->d);
+		vec3 hitnormal = glm::normalize(u*node[poly.nodes[1]].hnormal + v*node[poly.nodes[2]].hnormal + (1 - u - v)*node[poly.nodes[0]].hnormal);
+		hit->reflectray->d = normalize(2.0f * dot(ray->d, hitnormal)*hitnormal - ray->d);
 
-			vec3 color = vec3(0, 1, 0);
-			const vec4 specv = vec4(0.7f, 0.7f, 0.7f, 1.0f);
-			const vec4 diffv = vec4(0.6f, 0.6f, 0.6f, 1.0f);
-			const vec4 ambv = vec4(0.3f, 0.3f, 0.3f, 1.0f);
-			vec3 lightpos = vec3(0, 0, -2);
-			float shininess = 16.0f;
-			vec3 eye = vec3(0, 5, 20); //see main.cpp
-			//vec3 normalv = poly.h.normal; //Flat shading
-			vec3 normalv = this->rendermode == Mesh::GOURAUD_RENDERER ? hitnormal : poly.h.normal;
+		vec3 color = vec3(0, 1, 0);
+		const vec4 specv = vec4(0.7f, 0.7f, 0.7f, 1.0f);
+		const vec4 diffv = vec4(0.6f, 0.6f, 0.6f, 1.0f);
+		const vec4 ambv = vec4(0.3f, 0.3f, 0.3f, 1.0f);
+		vec3 lightpos = vec3(0, 0, -2);
+		float shininess = 16.0f;
+		vec3 eye = vec3(0, 5, 20); //see main.cpp
+		vec3 normalv = this->rendermode == Mesh::GOURAUD_RENDERER ? hitnormal : poly.hnormal; //Second case is flat-shading
 
-			vec3 lightdir = glm::normalize(lightpos - hit->reflectray->o);
-			vec3 half = glm::normalize(lightdir + eye);
-			float diffuse = glm::dot(normalv, lightdir);
-			diffuse = diffuse < 0.0f ? 0.0f : (diffuse > 1.0f ? 1.0f : diffuse);
-			float halfdnormal = glm::dot(half, normalv);
-			vec4 specular = vec4(0.0f, 0.0f, 0.0f, 0.0f);
-			if (halfdnormal > 0.0f)
-				specular = diffuse * pow(halfdnormal, shininess) * diffv * specv;
-			vec4 lightedcolor = vec4(0.2f * color, 1.0f) * ambv + diffuse*vec4(0.75f * color, 1.0f)*specv + specular;
+		vec3 lightdir = glm::normalize(lightpos - hit->reflectray->o);
+		vec3 half = glm::normalize(lightdir + eye);
+		float diffuse = glm::dot(normalv, lightdir);
+		diffuse = diffuse < 0.0f ? 0.0f : (diffuse > 1.0f ? 1.0f : diffuse);
+		float halfdnormal = glm::dot(half, normalv);
+		vec4 specular = vec4(0.0f, 0.0f, 0.0f, 0.0f);
+		if (halfdnormal > 0.0f)
+			specular = diffuse * pow(halfdnormal, shininess) * diffv * specv;
+		vec4 lightedcolor = vec4(0.2f * color, 1.0f) * ambv + diffuse*vec4(0.75f * color, 1.0f)*specv + specular;
 
-			hit->colour = (vec3)lightedcolor;
-			return hit;
-		}else{
+		hit->colour = (vec3)lightedcolor;
+		return hit;
+	}
+	else
 		return nullptr;
-		}
 }
 
 void Mesh::swap(float* a, float* b){
@@ -341,40 +292,8 @@ void Mesh::invertnormals(){
 	}
 	for (int i = 0; i < this->polygons; i++){
 		polygon[i].normal *= -1;
-		polygon[i].h.normal *= -1;
+		polygon[i].hnormal *= -1;
 	}
-}
-
-/*vec3 Mesh::normalizevector(vec3 vector){
-	vec3 v = vec3(vector.x, vector.y, vector.z);
-	GLfloat scale = v.x * v.x + v.y * v.y + v.z * v.z;
-	int integer = 0x5f3759df - (*(long*)&scale >> 1); //Using the fast inverse square root algorithm
-	GLfloat isr = *(GLfloat*)&integer;
-	isr *= 1.5f - (scale * 0.5f * isr * isr); //One iteration should be precise enough
-	//isr *= 1.5f - (scale * 0.5f * isr * isr);
-	//isr *= 1.5f - (scale * 0.5f * isr * isr); //Three iterations are enough because GLfloat is less precise
-	v *= isr;
-	return v;
-	}
-
-	vec3 Mesh::crossproduct(vec3 v1, vec3 v2){
-	return vec3(v1.y*v2.z - v1.z*v2.y, v1.z*v2.x - v1.x*v2.z, v1.x*v2.y - v1.y*v2.x);
-	}
-
-	float Mesh::dot(vec3 v1, vec3 v2){
-	return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z;
-	}
-
-	float Mesh::length(vec3 v){
-	return sqrtf(dot(v, v));
-	}*/
-
-float Mesh::surface(vec3 v1, vec3 v2, vec3 v3){
-	float la = glm::length(v1 - v2);
-	float lb = glm::length(v2 - v3);
-	float lc = glm::length(v3 - v1);
-	float halfu = 0.5f * (la + lb + lc);
-	return sqrtf(halfu*(halfu - la)*(halfu - lb)*(halfu - lc));
 }
 
 void Mesh::renderFlat(){
