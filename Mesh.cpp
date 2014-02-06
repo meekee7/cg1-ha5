@@ -26,7 +26,6 @@ Mesh::~Mesh()
 }
 
 bool Mesh::loadOff(std::string filename, mat4 modelview){
-	this->modelviewmat = modelview;
 	ifstream modelfile(filename);
 	if (modelfile.is_open()) {
 		string line; //Using short-circuit-or intentionally here
