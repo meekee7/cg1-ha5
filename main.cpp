@@ -58,7 +58,6 @@ float _world_roty = -35;
 
 std::vector<Ray> rays;
 std::vector<vec4> hitpoints;
-std::vector<float> depthmap;
 std::vector<vec3> rayTracedImage;
 GLuint rayTracedImageId = 0;
 
@@ -122,9 +121,7 @@ void ray_trace()
 
 	rayTracedImage.clear();
 	hitpoints.clear();
-	depthmap.clear();
 	rayTracedImage.resize(w*h, vec3(0, 1, 0));
-	depthmap.resize(w*h);
 	cout << "Begin raytracing\n";
 	clock_t start = std::clock();
 	for (float y = 0; y < _win_h; y += (1 / _sample_factor))
@@ -144,11 +141,9 @@ void ray_trace()
 		vec3 fragcolour;
 		if (hit == nullptr){
 			fragcolour = BACKGROUND;
-			//depthmap[coord] = INFINITY;
 		}
 		else {
 			fragcolour = hit->colour;
-			//depthmap[coord] = hit->distance;
 			omp_set_lock(&lock); { //Concurrent modification of the hitpoints is troubling
 				hitpoints.push_back(vec4(hit->reflectray->o, 1));
 			}omp_unset_lock(&lock);
