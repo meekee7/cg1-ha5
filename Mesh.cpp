@@ -253,7 +253,7 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 			float shininess = 16.0f;
 			vec3 eye = vec3(0, 5, 20); //see main.cpp
 			//vec3 normalv = poly.h.normal; //Flat shading
-			vec3 normalv = hitnormal;
+			vec3 normalv = this->rendermode == Mesh::GOURAUD_RENDERER ? hitnormal : poly.h.normal;
 
 			vec3 lightdir = glm::normalize(lightpos - hit->reflectray->o);
 			vec3 half = glm::normalize(lightdir + eye);
@@ -324,6 +324,17 @@ void Mesh::render(){
 		glShadeModel(GL_SMOOTH);
 		this->renderTextured();
 		break;
+	}
+}
+
+void Mesh::invertnormals(){
+	for (int i = 0; i < this->nodes; i++){
+		node[i].normal *= -1;
+		node[i].hnormal *= -1;
+	}
+	for (int i = 0; i < this->polygons; i++){
+		polygon[i].normal *= -1;
+		polygon[i].h.normal *= -1;
 	}
 }
 

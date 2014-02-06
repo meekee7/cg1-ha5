@@ -18,6 +18,7 @@ public:
 	};
 	void setRenderMode(RenderMode mode);
 	void render();
+	void invertnormals();
 	Hitresult* intersectModel(Ray* ray);
 
 //private:

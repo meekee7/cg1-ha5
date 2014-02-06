@@ -17,16 +17,23 @@ Scene::~Scene()
 
 void Scene::loadscenedata(){
 	mat4 identity = IDENTITY4;
-	objects = 2;
+	objects = 3;
 	sceneobjects = new Mesh*[objects];
 	Mesh* triangle = new Mesh();
-	triangle->loadOff("scenedata/drei.off", identity);
+	triangle->loadOff("scenedata/tasse.off", IDENTITY4);
 	triangle->setRenderMode(Mesh::GOURAUD_RENDERER);
 	sceneobjects[0] = triangle;
 	Mesh* cup = new Mesh();
-	cup->loadOff("scenedata/tasse.off", identity);
+	mat4 mat = mat4(vec4(1, 0, 0, 0), vec4(0, 1, 0, 0), vec4(0, 0, 1, 0), vec4(-5, 0, 1, 1));
+	cup->loadOff("scenedata/tasse.off", mat);
 	cup->setRenderMode(Mesh::GOURAUD_RENDERER);
 	sceneobjects[1] = cup;
+	Mesh* planedown = new Mesh();
+	mat = mat4(vec4(10, 0, 0, 0), vec4(0, 10, 0, 0), vec4(0, 0, 10, 0), vec4(0, 0, 0, 1));
+	planedown->loadOff("scenedata/planehori.off", mat);
+	planedown->setRenderMode(Mesh::FLAT_RENDERER);
+	planedown->invertnormals();
+	sceneobjects[2] = planedown;
 }
 
 void Scene::renderscenegl(){
