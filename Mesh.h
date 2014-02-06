@@ -2,6 +2,7 @@
 #include "glm/glm.hpp"
 #include "Ray.h"
 #include "Hitresult.h"
+#include "Material.h"
 using namespace glm;
 #pragma once
 class Mesh
@@ -9,7 +10,7 @@ class Mesh
 public:
 	Mesh();
 	~Mesh();
-	bool loadOff(std::string file, mat4 modelview);
+	bool loadOff(std::string file, mat4 modelview, Material* material, void* scene);
 	void printmesh();
 	enum RenderMode{
 		FLAT_RENDERER,
@@ -43,6 +44,8 @@ public:
 	nodestruct* node;
 	poly* polygon;
 	RenderMode rendermode;
+	Material* material;
+	void* scene;
 	void renderFlat();
 	void renderSmooth();
 	void renderTextured();

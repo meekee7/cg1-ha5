@@ -57,7 +57,7 @@ float _world_roty = -35;
 
 
 std::vector<Ray> rays;
-std::vector<vec3> hitpoints;
+std::vector<vec4> hitpoints;
 std::vector<float> depthmap;
 std::vector<vec3> rayTracedImage;
 GLuint rayTracedImageId = 0;
@@ -69,7 +69,7 @@ int _sample_height = 0;
 int _rays_disp_step = 10;
 bool _auto_vis = true;
 
-int _recursions = 0;
+int _recursions = 2;
 
 enum vis_mode { vis_default, vis_opengl, vis_isecs, vis_lods, vis_N };
 int _vis_mode = vis_default;
@@ -105,7 +105,7 @@ void create_primary_rays(std::vector<Ray>& rays, int resx, int resy)
 {
 	vec3 start = glm::unProject(vec3(resx, resy, 0), modelview, projection, glm::make_vec4(viewport));
 	vec3 end = glm::unProject(vec3(resx, resy, 1), modelview, projection, glm::make_vec4(viewport));
-	rays.push_back(Ray(start, glm::normalize(end - start)));
+	rays.push_back(Ray(start, glm::normalize(end - start), _recursions));
 }
 
 // Ray trace the scene
@@ -149,7 +149,7 @@ void ray_trace()
 			fragcolour = hit->colour;
 			//depthmap[coord] = hit->distance;
 			omp_set_lock(&lock); { //Concurrent modification of the hitpoints is troubling
-				hitpoints.push_back(hit->reflectray->o);
+				hitpoints.push_back(vec4(hit->reflectray->o, 1));
 			}omp_unset_lock(&lock);
 			delete hit;
 		}
@@ -179,7 +179,7 @@ void ray_trace()
 void draw_rays()
 {
 	for (unsigned int i = 0; i < hitpoints.size(); i++){
-		vec3 point = (vec3) (modelview*vec4(hitpoints.at(i),1));
+		vec4 point = modelview*hitpoints.at(i);
 		glColor3ub(0, 255, 0);
 		glBegin(GL_POINTS); {
 			glVertex3f(point.x, point.y, point.z);
@@ -357,6 +357,7 @@ void main_display()
 	std::ostringstream text2;
 	text2 << "key s,S\t: +/- sampling factor $2" << _sample_factor << "$0\n";
 	text2 << "key i\t: render image to file\n";
+	text2 << "key l\t: +/- recursion level $2" << _recursions << "$0\n";
 
 	draw_string(_win_gap, _win_gap + _win_h + _win_gap + 12, text.str());
 	draw_string(2 * _win_gap + _win_w, _win_gap + _win_h + _win_gap + 12, text2.str());
@@ -577,6 +578,14 @@ void main_keyboard(unsigned char key, int x, int y)
 		_sample_factor *= 0.5;
 		std::cout << "sampling factor: " << _sample_factor << std::endl;
 		break;
+	case 'l':
+		_recursions--;
+		if (_recursions < 0)
+			_recursions = 0;
+		break;
+	case 'L':
+		_recursions++;
+		break;
 	}
 	redisplay_all();
 }
@@ -596,7 +605,7 @@ int main(int argc, char** argv)
 		//When testing, then turn off centralization and distance normalization in the model loader
 		*/
 	Mesh* mesh = new Mesh();
-	mesh->loadOff("scenedata/drei.off", 2 * IDENTITY4);
+	mesh->loadOff("scenedata/drei.off", 2 * IDENTITY4, new Material(vec3(0, 1, 0)), scene);
 	Ray* ray = new Ray(vec3(-1, 0, 0), vec3(1, 0, 0));
 	Hitresult* hit = mesh->intersectpolygon(mesh->polygon[0], ray);
 	if (hit == nullptr)

@@ -42,10 +42,10 @@ SOURCES= \
 #---------------------------------------------------------------------------------------------------
 
 HEADERS+= \
-	Scene.h Mesh.h Ray.h Hitresult.h
+	Scene.h Mesh.h Ray.h Hitresult.h Material.h Light.h
 
 SOURCES+= \
-	main.cpp Scene.cpp Ray.cpp Hitresult.cpp Mesh.cpp
+	main.cpp Scene.cpp Ray.cpp Hitresult.cpp Mesh.cpp Material.cpp Light.cpp
 
 
 

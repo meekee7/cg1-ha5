@@ -7,6 +7,7 @@ public:
 	Ray();
 	~Ray();
 	Ray(const vec3& origin, const vec3& dir);
+	Ray(const vec3& origin, const vec3& dir, int duration);
 	Ray(const vec3& origin, const vec3& dir, float eps);
 
 	vec3 att(float t);
@@ -15,5 +16,6 @@ public:
 
 	float tmin;
 	
+	int duration;
 };
 

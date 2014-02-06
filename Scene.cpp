@@ -3,6 +3,8 @@ using namespace std;
 
 Scene::Scene()
 {
+	objects = 0;
+	numlights = 0;
 }
 
 
@@ -13,27 +15,69 @@ Scene::~Scene()
 			delete sceneobjects[i];
 		delete sceneobjects;
 	}
+	if (lights != nullptr){
+		for (int i = 0; i < numlights; i++)
+			delete lights[i];
+		delete lights;
+	}
+}
+
+void Scene::makelights(){
+	numlights = 3;
+	lights = new Light*[numlights];
+	Light* l1 = new Light();
+	l1->position = vec3(0, 0, -2);
+	lights[0] = l1;
+	Light* l2 = new Light();
+	l2->position = vec3(0, 0, 0);
+	lights[1] = l2;
+	Light* l3 = new Light();
+	l3->position = vec3(0, 0, -7);
+	lights[2] = l3;
 }
 
 void Scene::loadscenedata(){
-	mat4 identity = IDENTITY4;
-	objects = 3;
+	this->makelights();
+	mat4 mat;
+	objects = 7;
 	sceneobjects = new Mesh*[objects];
-	Mesh* triangle = new Mesh();
-	triangle->loadOff("scenedata/tasse.off", IDENTITY4);
-	triangle->setRenderMode(Mesh::GOURAUD_RENDERER);
-	sceneobjects[0] = triangle;
-	Mesh* cup = new Mesh();
-	mat4 mat = mat4(vec4(1, 0, 0, 0), vec4(0, 1, 0, 0), vec4(0, 0, 1, 0), vec4(-5, 0, 1, 1));
-	cup->loadOff("scenedata/tasse.off", mat);
-	cup->setRenderMode(Mesh::GOURAUD_RENDERER);
-	sceneobjects[1] = cup;
+	Mesh* cup1 = new Mesh();
+	mat = mat4(vec4(1, 0, 0, 0), vec4(0, 1, 0, 0), vec4(0, 0, 1, 0), vec4(1, 1, 2, 1));
+	cup1->loadOff("scenedata/tasse.off", mat, new Material(vec3(0, 1, 0)), this);
+	cup1->setRenderMode(Mesh::GOURAUD_RENDERER);
+	sceneobjects[0] = cup1;
+	Mesh* cup2 = new Mesh();
+	mat = mat4(vec4(1, 0, 0, 0), vec4(0, 1, 0, 0), vec4(0, 0, 1, 0), vec4(-2, 0, 1, 1));
+	cup2->loadOff("scenedata/tasse.off", mat, new Material(vec3(0, 0, 1)), this);
+	cup2->setRenderMode(Mesh::GOURAUD_RENDERER);
+	sceneobjects[1] = cup2;
+	Mesh* planeback = new Mesh();
+	mat = mat4(vec4(10, 0, 0, 0), vec4(0, 10, 0, 0), vec4(0, 0, 10, 0), vec4(0, 0, -8, 1));
+	planeback->loadOff("scenedata/planeback.off", mat, new Material(), this);
+	planeback->setRenderMode(Mesh::FLAT_RENDERER);
+	sceneobjects[2] = planeback;
+	Mesh* planeleft = new Mesh();
+	mat = mat4(vec4(10, 0, 0, 0), vec4(0, 10, 0, 0), vec4(0, 0, 10, 0), vec4(-8, 0, 0, 1));
+	planeleft->loadOff("scenedata/planeverti.off", mat, new Material(vec3(0.8, 0.8, 0.0)), this);
+	planeleft->setRenderMode(Mesh::FLAT_RENDERER);
+	planeleft->invertnormals();
+	sceneobjects[3] = planeleft;
+	Mesh* planeright = new Mesh();
+	mat = mat4(vec4(10, 0, 0, 0), vec4(0, 10, 0, 0), vec4(0, 0, 10, 0), vec4(8, 0, 0, 1));
+	planeright->loadOff("scenedata/planeverti.off", mat, new Material(vec3(0.0, 0.8, 0.8)), this);
+	planeright->setRenderMode(Mesh::FLAT_RENDERER);
+	sceneobjects[4] = planeright;
+	Mesh* planeup = new Mesh();
+	mat = mat4(vec4(10, 0, 0, 0), vec4(0, 10, 0, 0), vec4(0, 0, 10, 0), vec4(0, 8, 0, 1));
+	planeup->loadOff("scenedata/planehori.off", mat, new Material(vec3(0.8, 0.8, 0.8)), this);
+	planeup->setRenderMode(Mesh::FLAT_RENDERER);
+	planeup->invertnormals();
+	sceneobjects[5] = planeup;
 	Mesh* planedown = new Mesh();
-	mat = mat4(vec4(10, 0, 0, 0), vec4(0, 10, 0, 0), vec4(0, 0, 10, 0), vec4(0, 0, 0, 1));
-	planedown->loadOff("scenedata/planeback.off", mat);
+	mat = mat4(vec4(10, 0, 0, 0), vec4(0, 10, 0, 0), vec4(0, 0, 10, 0), vec4(0, -8, 0, 1));
+	planedown->loadOff("scenedata/planehori.off", mat, new Material(vec3(0.8, 0.0, 0.8)), this);
 	planedown->setRenderMode(Mesh::FLAT_RENDERER);
-	//planedown->invertnormals();
-	sceneobjects[2] = planedown;
+	sceneobjects[6] = planedown;
 }
 
 void Scene::renderscenegl(){

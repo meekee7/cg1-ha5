@@ -6,6 +6,7 @@
 #include <cstring>
 
 #include "Ray.h"
+#include "Scene.h"
 
 #define NONE -1
 using namespace std;
@@ -23,9 +24,12 @@ Mesh::~Mesh()
 		delete polygon[i].nodes;
 	delete polygon;
 	delete node;
+	delete material;
 }
 
-bool Mesh::loadOff(std::string filename, mat4 modelview){
+bool Mesh::loadOff(std::string filename, mat4 modelview, Material* material, void* scene){
+	this->scene = scene;
+	this->material = material;
 	ifstream modelfile(filename);
 	if (modelfile.is_open()) {
 		string line; //Using short-circuit-or intentionally here
@@ -198,31 +202,51 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 	if (0.0f < t && 0.0f < u && 0.0f < v && ((u + v) < 1)){
 		Hitresult* hit = new Hitresult();
 		hit->distance = t;
-		hit->reflectray = new Ray();
-		hit->reflectray->o = ray->att(t);
+		vec3 origin = ray->att(t);;
 		vec3 hitnormal = glm::normalize(u*node[poly.nodes[1]].hnormal + v*node[poly.nodes[2]].hnormal + (1 - u - v)*node[poly.nodes[0]].hnormal);
-		hit->reflectray->d = normalize(2.0f * dot(ray->d, hitnormal)*hitnormal - ray->d);
+		vec3 direction = normalize(2.0f * dot(ray->d, hitnormal)*hitnormal - ray->d);
+		hit->reflectray = new Ray(origin, direction, ray->duration - 1);
 
-		vec3 color = vec3(0, 1, 0);
+		vec3 colour;
+		Scene* scene = (Scene*) this->scene;
+		if (!this->material->reflecting)
+			colour = this->material->colour;
+		else{
+			if (ray->duration <= 1)
+				colour = BACKGROUND;
+			else {
+				Hitresult* reflection = scene->intersectscene(hit->reflectray);
+				if (reflection != nullptr){
+					colour = reflection->colour;
+					delete reflection;
+				}
+				else
+					colour = BACKGROUND;
+			}
+		}
+
 		const vec4 specv = vec4(0.7f, 0.7f, 0.7f, 1.0f);
 		const vec4 diffv = vec4(0.6f, 0.6f, 0.6f, 1.0f);
 		const vec4 ambv = vec4(0.3f, 0.3f, 0.3f, 1.0f);
-		vec3 lightpos = vec3(0, 0, -2);
-		float shininess = 16.0f;
+		float shininess = 128.0f;
 		vec3 eye = vec3(0, 5, 20); //see main.cpp
 		vec3 normalv = this->rendermode == Mesh::GOURAUD_RENDERER ? hitnormal : poly.hnormal; //Second case is flat-shading
 
-		vec3 lightdir = glm::normalize(lightpos - hit->reflectray->o);
-		vec3 half = glm::normalize(lightdir + eye);
-		float diffuse = glm::dot(normalv, lightdir);
-		diffuse = diffuse < 0.0f ? 0.0f : (diffuse > 1.0f ? 1.0f : diffuse);
-		float halfdnormal = glm::dot(half, normalv);
-		vec4 specular = vec4(0.0f, 0.0f, 0.0f, 0.0f);
-		if (halfdnormal > 0.0f)
-			specular = diffuse * pow(halfdnormal, shininess) * diffv * specv;
-		vec4 lightedcolor = vec4(0.2f * color, 1.0f) * ambv + diffuse*vec4(0.75f * color, 1.0f)*specv + specular;
+		hit->colour = vec3(0, 0, 0);
+		for (int i = 0; i < scene->numlights; i++){
+			vec3 lightpos = scene->lights[0]->position;
+			vec3 lightdir = glm::normalize(lightpos - hit->reflectray->o);
+			vec3 half = glm::normalize(lightdir + eye);
+			float diffuse = glm::dot(normalv, lightdir);
+			diffuse = diffuse < 0.0f ? 0.0f : (diffuse > 1.0f ? 1.0f : diffuse);
+			float halfdnormal = glm::dot(half, normalv);
+			vec4 specular = vec4(0.0f, 0.0f, 0.0f, 0.0f);
+			if (halfdnormal > 0.0f)
+				specular = diffuse * pow(halfdnormal, shininess) * diffv * specv;
+			vec4 lightedcolour = vec4(0.2f * colour, 1.0f) * ambv + diffuse*vec4(0.75f * colour, 1.0f)*specv + specular;
 
-		hit->colour = (vec3)lightedcolor;
+			hit->colour += (vec3)lightedcolour;
+		}
 		return hit;
 	}
 	else
