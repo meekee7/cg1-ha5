@@ -69,6 +69,7 @@ int _rays_disp_step = 10;
 bool _auto_vis = true;
 
 int _recursions = 2;
+bool motionblur = false;
 
 enum vis_mode { vis_default, vis_opengl, vis_isecs, vis_lods, vis_N };
 int _vis_mode = vis_default;
@@ -100,38 +101,32 @@ void clear_rays()
 }
 
 // Create rays for each sample of the image
-void create_primary_rays(std::vector<Ray>& rays, int resx, int resy)
+void create_primary_rays(std::vector<Ray>& rays, int resx, int resy, mat4 modelviewmat)
 {
-	vec3 start = glm::unProject(vec3(resx, resy, 0), modelview, projection, glm::make_vec4(viewport));
-	vec3 end = glm::unProject(vec3(resx, resy, 1), modelview, projection, glm::make_vec4(viewport));
+	vec3 start = glm::unProject(vec3(resx, resy, 0), modelviewmat, projection, glm::make_vec4(viewport));
+	vec3 end = glm::unProject(vec3(resx, resy, 1), modelviewmat, projection, glm::make_vec4(viewport));
 	rays.push_back(Ray(start, glm::normalize(end - start), _recursions));
 }
 
-// Ray trace the scene
-void ray_trace()
-{
-	// Number of samples in x and y direction given the sampling factor
+std::vector<vec3> raytraceimage(bool drawhits, mat4 modelviewmat){
+	std::vector<vec3> img;
 	int w = (int)(_sample_factor * (float)_win_w);
 	int h = (int)(_sample_factor * (float)_win_h);
 
 	_sample_width = w;
 	_sample_height = h;
 
-	std::cout << "raycast: w=" << w << " h=" << h << std::endl;
-
-	rayTracedImage.clear();
-	hitpoints.clear();
-	rayTracedImage.resize(w*h, vec3(0, 1, 0));
-	cout << "Begin raytracing\n";
+	img.resize(w*h);
+	if (drawhits)
+		hitpoints.clear();
 	clock_t start = std::clock();
 	for (float y = 0; y < _win_h; y += (1 / _sample_factor))
 		for (float x = 0; x < _win_w; x += (1 / _sample_factor))
-			create_primary_rays(rays, (int)x, (int)y);
-	// TODO : write the samples with the correct color (i.e raytrace)
-	mat4 mvinv = glm::inverse(modelview);
+			create_primary_rays(rays, (int)x, (int)y, modelviewmat);
+
+	mat4 mvinv = glm::inverse(modelviewmat);
 	omp_lock_t lock;
 	omp_init_lock(&lock);
-	scene->intercounter = 0;
 #pragma omp parallel for
 	for (int coord = 0; coord < (int)rays.size(); coord++){
 		Ray* ray = &rays.at(coord);
@@ -144,19 +139,49 @@ void ray_trace()
 		}
 		else {
 			fragcolour = hit->colour;
-			omp_set_lock(&lock); { //Concurrent modification of the hitpoints is troubling
-				hitpoints.push_back(vec4(hit->reflectray->o, 1));
-			}omp_unset_lock(&lock);
+			if (drawhits){
+				omp_set_lock(&lock); { //Concurrent modification of the hitpoints is troubling
+					hitpoints.push_back(vec4(hit->reflectray->o, 1));
+				}omp_unset_lock(&lock);
+			}
 			delete hit;
 		}
-		rayTracedImage[coord] = fragcolour;
+		img[coord] = fragcolour;
 	}
 
 	omp_destroy_lock(&lock);
+	rays.clear();
+	return img;
+}
+
+// Ray trace the scene
+void ray_trace()
+{
+	/// Number of samples in x and y direction given the sampling factor
+	int w = (int)(_sample_factor * (float)_win_w);
+	int h = (int)(_sample_factor * (float)_win_h);
+
+	std::cout << "raycast: w=" << w << " h=" << h << std::endl;
+
+	scene->intercounter = 0;
+	cout << "Begin raytracing\n";
+	clock_t start = std::clock();
+
+	if (motionblur){
+		std::vector<vec3> center = raytraceimage(true, modelview);
+		std::vector<vec3> left = raytraceimage(false, glm::rotate(modelview, 0.3f, vec3(0, 1, 0)));
+		std::vector<vec3> right = raytraceimage(false, glm::rotate(modelview, -0.3f, vec3(0, 1, 0)));
+		for (int i = 0; i < center.size(); i++)
+			center[i] = (center[i] + 0.2f * left[i] + 0.2f * right[i]) / 1.4f;
+		rayTracedImage = center;
+	}
+	else
+		rayTracedImage = raytraceimage(true, modelview);
+
 	clock_t stop = std::clock();
 	cout << "Rendered in " << stop - start << " milliseconds\n";
 	cout << scene->intercounter << " triangle intersection tests\n";
-	rays.clear();
+	//rays.clear();
 	// Create an openGL texture if it doesn't exist allready
 	if (!rayTracedImageId)
 	{
@@ -356,6 +381,7 @@ void main_display()
 	text2 << "key i\t: render image to file\n";
 	text2 << "key l\t: +/- recursion level $2" << _recursions << "$0\n";
 	text2 << "key b\t: enable/disable shadow ($2" << (scene->showshadow ? "enabled" : "disabled") << "$0)\n";
+	text2 << "key m\t: enable/disable motion blur ($2" << (motionblur ? "enabled" : "disabled") << "$0)\n";
 
 	draw_string(_win_gap, _win_gap + _win_h + _win_gap + 12, text.str());
 	draw_string(2 * _win_gap + _win_w, _win_gap + _win_h + _win_gap + 12, text2.str());
@@ -593,6 +619,9 @@ void main_keyboard(unsigned char key, int x, int y)
 	case 'B':
 		scene->showshadow = !scene->showshadow;
 		break;
+	case 'm':
+	case 'M':
+		motionblur = !motionblur;
 	}
 	redisplay_all();
 	x = 0;
