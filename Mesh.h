@@ -42,6 +42,7 @@ public:
 	int edges;
 	nodestruct* node;
 	poly* polygon;
+	mat4 modelviewmat;
 	RenderMode rendermode;
 	void renderFlat();
 	void renderSmooth();

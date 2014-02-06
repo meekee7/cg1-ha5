@@ -149,7 +149,7 @@ void ray_trace()
 			fragcolour = hit->colour;
 			//depthmap[coord] = hit->distance;
 			omp_set_lock(&lock); { //Concurrent modification of the hitpoints is troubling
-				hitpoints.push_back((vec3)(modelview*vec4(hit->reflectray->o, 1)));
+				hitpoints.push_back(hit->reflectray->o);
 			}omp_unset_lock(&lock);
 			delete hit;
 		}
@@ -179,7 +179,7 @@ void ray_trace()
 void draw_rays()
 {
 	for (unsigned int i = 0; i < hitpoints.size(); i++){
-		vec3 point = hitpoints.at(i);
+		vec3 point = (vec3) (modelview*vec4(hitpoints.at(i),1));
 		glColor3ub(0, 255, 0);
 		glBegin(GL_POINTS); {
 			glVertex3f(point.x, point.y, point.z);
@@ -434,7 +434,6 @@ void screen_reshape(int width, int height)
 	glClearColor(_clear_col[0], _clear_col[1], _clear_col[2], _clear_col[3]);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_LIGHTING);
-
 }
 
 void screen_display()
@@ -597,7 +596,7 @@ int main(int argc, char** argv)
 		//When testing, then turn off centralization and distance normalization in the model loader
 		*/
 	Mesh* mesh = new Mesh();
-	mesh->loadOff("scenedata/drei.off",2*IDENTITY4);
+	mesh->loadOff("scenedata/drei.off", 2 * IDENTITY4);
 	Ray* ray = new Ray(vec3(-1, 0, 0), vec3(1, 0, 0));
 	Hitresult* hit = mesh->intersectpolygon(mesh->polygon[0], ray);
 	if (hit == nullptr)

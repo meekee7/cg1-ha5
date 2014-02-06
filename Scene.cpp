@@ -17,7 +17,7 @@ Scene::~Scene()
 
 void Scene::loadscenedata(){
 	mat4 identity = IDENTITY4;
-	objects = 3;
+	objects = 2;
 	sceneobjects = new Mesh*[objects];
 	Mesh* triangle = new Mesh();
 	triangle->loadOff("scenedata/tasse.off", IDENTITY4);
@@ -33,7 +33,7 @@ void Scene::loadscenedata(){
 	planedown->loadOff("scenedata/planeback.off", mat);
 	planedown->setRenderMode(Mesh::FLAT_RENDERER);
 	planedown->invertnormals();
-	sceneobjects[2] = planedown;
+	//sceneobjects[2] = planedown;
 }
 
 void Scene::renderscenegl(){
