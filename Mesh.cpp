@@ -197,7 +197,7 @@ Hitresult* Mesh::intersectModel(Ray* ray){
 	return hit;
 }
 Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
-	/*vec3 v2mv1 = node[poly.nodes[1]].node - node[poly.nodes[0]].node;
+	vec3 v2mv1 = node[poly.nodes[1]].node - node[poly.nodes[0]].node;
 	vec3 v3mv1 = node[poly.nodes[2]].node - node[poly.nodes[0]].node;
 	float det = glm::dot(glm::cross(ray->d, v3mv1), v2mv1);
 	float invdet = 1.0f / det;
@@ -207,15 +207,13 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 	vec3 hitpoint = vec3(t, u, v);
 	float distance = 1 /  (u + v);
 	if (0.0f < t && 0.0f < u && 0.0f < v && ((u + v) < 1)){
-	Hitresult* hit = new Hitresult();
-	hit->distance = t;
-	hit->reflectray = new Ray();
-	hit->reflectray->o = ray->att(t);
-	hit->reflectray->d = vec3(0);
-	}
-
-	else return nullptr;*/
-	{	//http://uninformativ.de/bin/RaytracingSchnitttests-76a577a-CC-BY.pdf
+		Hitresult* hit = new Hitresult();
+		hit->distance = t;
+		hit->reflectray = new Ray();
+		hit->reflectray->o = ray->att(t);
+		hit->reflectray->d = vec3(0);
+		//http://uninformativ.de/bin/RaytracingSchnitttests-76a577a-CC-BY.pdf
+		/*
 		float d = dot(poly.h.normal, node[poly.nodes[0]].node);
 		float direction = dot(poly.h.normal, ray->d);
 		if (direction == 0.0f) // If we do not catch division by zero, then we get invalid results
@@ -225,24 +223,32 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 		float beta = dot(poly.h.beta1, hitpoint) + poly.h.beta2;
 		float gamma = dot(poly.h.gamma1, hitpoint) + poly.h.gamma2;
 		float alpha = 1 - beta - gamma;
-		if (direction <= 0.0f || beta < 0.0f || gamma < 0.0f || alpha < 0.0f)
+		*/
+		/*if (direction <= 0.0f || beta < 0.0f || gamma < 0.0f || alpha < 0.0f)
 			return nullptr;
-		else {
+		else*/ 
+		/*
 			Hitresult* hit = new Hitresult();
 			hit->reflectray = new Ray();
 			hit->reflectray->o = hitpoint;
 			hit->distance = distance;
+			*/
+			/*
 			float s1 = surface(node[poly.nodes[0]].node, node[poly.nodes[1]].node, hitpoint); // / poly.h.surface;
 			float s2 = surface(node[poly.nodes[0]].node, node[poly.nodes[2]].node, hitpoint); // / poly.h.surface;
 			float s3 = surface(node[poly.nodes[1]].node, node[poly.nodes[2]].node, hitpoint); // / poly.h.surface;
+			*/
 			/*float a1 = 0.5f * (s1 + s2 - s3);
 			float a2 = 0.5f * (s1 - s2 + s3);
 			float a3 = 0.5f * (s3 + s2 - s1); //TODO fix this
 			*/
+			
+			/*
 			float a1 = (s1 + s2) / poly.h.surface;
 			float a2 = (s1 + s3) / poly.h.surface;
 			float a3 = (s2 + s3) / poly.h.surface;
-			vec3 hitnormal = glm::normalize(a1*node[poly.nodes[0]].hnormal + a2*node[poly.nodes[1]].hnormal + a3*node[poly.nodes[2]].hnormal);
+			*/
+			vec3 hitnormal = glm::normalize(u*node[poly.nodes[1]].hnormal + v*node[poly.nodes[2]].hnormal + (1-u-v)*node[poly.nodes[0]].hnormal);
 			hit->reflectray->d = normalize(2.0f * dot(ray->d, hitnormal)*hitnormal - ray->d);
 
 			vec3 color = vec3(0, 1, 0);
@@ -267,8 +273,9 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 
 			hit->colour = (vec3)lightedcolor;
 			return hit;
+		}else{
+		return nullptr;
 		}
-	}
 }
 
 void Mesh::swap(float* a, float* b){
