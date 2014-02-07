@@ -212,9 +212,14 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 			return hit;
 
 		vec3 colour;
-		if (!this->material->reflecting)
-			colour = this->material->colour;
-		else{
+		if (this->material->usetexture){
+			vec2 point = u*node[poly.nodes[1]].tex + v*node[poly.nodes[2]].tex + (1 - u - v)*node[poly.nodes[0]].tex;
+			point.x *= this->material->texwidth;
+			point.y *= this->material->texheight;
+			vec4 texel = this->material->texture[this->material->texheight*(int)point.y + (int)point.x];
+			colour = vec3(texel.r, texel.g, texel.b);
+		}
+		else if (this->material->reflecting){
 			if (ray->duration <= 1)
 				colour = BACKGROUND;
 			else {
@@ -227,6 +232,8 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 					colour = BACKGROUND;
 			}
 		}
+		else
+			colour = this->material->colour;
 
 		const vec4 specv = vec4(0.7f, 0.7f, 0.7f, 1.0f);
 		const vec4 diffv = vec4(0.6f, 0.6f, 0.6f, 1.0f);

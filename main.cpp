@@ -209,7 +209,7 @@ void ray_trace()
 
 	if (depthoffield){
 		int blurrad = 1;
-		int distance = -50.0f;
+		int distance = -50;
 		std::vector<vec3> img1, img2;
 		img1.resize(w*h);
 		img2.resize(w*h);
@@ -221,7 +221,7 @@ void ray_trace()
 					img1[x + y*w] = rayTracedImage[x + y*w];
 				else {
 					vec3 sum = vec3(0, 0, 0);
-					int radius = abs(blurrad * (distance + depthmap[x + y*w]));
+					int radius = (int)abs(blurrad * (distance + depthmap[x + y*w]));
 					for (int i = -radius; i <= radius && x + i >= 0 && x + i < w; i++)
 						sum += rayTracedImage[x + i + y*w];
 					img1[x + y*w] = sum / (float)(radius * 2 + 1);
@@ -235,7 +235,7 @@ void ray_trace()
 					img2[x + y*w] = rayTracedImage[x + y*w];
 				else {
 					vec3 sum = vec3(0, 0, 0);
-					int radius = abs(blurrad * (distance + depthmap[x + y*w]));
+					int radius = (int)abs(blurrad * (distance + depthmap[x + y*w]));
 					for (int i = -radius; i <= radius && y + i >= 0 && y + i < h; i++)
 						sum += rayTracedImage[x + (y + i)*w];
 					img2[x + y*w] = sum / (float)(radius * 2 + 1);

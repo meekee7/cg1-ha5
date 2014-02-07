@@ -51,8 +51,10 @@ void Scene::loadscenedata(){
 	cup1->setRenderMode(Mesh::GOURAUD_RENDERER);
 	sceneobjects[0] = cup1;
 	Mesh* cup2 = new Mesh();
+	Material* texmat = new Material();
+	texmat->loadPPM("scenedata/earthlights.ppm");
 	mat = mat4(vec4(1, 0, 0, 0), vec4(0, 1, 0, 0), vec4(0, 0, 1, 0), vec4(-2, 0, 1, 1));
-	cup2->loadOff("scenedata/tasse.off", mat, new Material(vec3(0, 0, 1)), this);
+	cup2->loadOff("scenedata/tasse.off", mat, texmat, this);
 	cup2->setRenderMode(Mesh::GOURAUD_RENDERER);
 	sceneobjects[1] = cup2;
 	Mesh* cup3 = new Mesh();
