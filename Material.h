@@ -15,6 +15,7 @@ public:
 	vec3 colour;
 	bool reflecting;
 	bool usetexture;
+	bool bumpmap;
 	int texwidth;
 	int texheight;
 	std::vector<glm::vec4> texture;

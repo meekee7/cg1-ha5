@@ -211,9 +211,12 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 		if (ray->shadowtest) //We do not need the rest and avoid endless recursion 
 			return hit;
 
+		vec2 texpoint;
+		if (this->material->bumpmap || this->material->usetexture)
+			texpoint = u*node[poly.nodes[1]].tex + v*node[poly.nodes[2]].tex + (1 - u - v)*node[poly.nodes[0]].tex;
 		vec3 colour;
 		if (this->material->usetexture){
-			vec2 point = u*node[poly.nodes[1]].tex + v*node[poly.nodes[2]].tex + (1 - u - v)*node[poly.nodes[0]].tex;
+			vec2 point = texpoint;
 			point.x *= this->material->texwidth;
 			point.y *= this->material->texheight;
 			vec4 texel = this->material->texture[this->material->texheight*(int)point.y + (int)point.x];
@@ -240,7 +243,13 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 		const vec4 ambv = vec4(0.3f, 0.3f, 0.3f, 1.0f);
 		float shininess = 128.0f;
 		vec3 eye = vec3(0, 5, 20); //see main.cpp
-		vec3 normalv = this->rendermode == Mesh::GOURAUD_RENDERER ? hitnormal : poly.hnormal; //Second case is flat-shading
+		vec3 normalv = this->rendermode == Mesh::FLAT_RENDERER ? poly.hnormal : hitnormal; //Second case is flat-shading
+
+		if (this->material->bumpmap){
+			texpoint *= 80;
+			vec3 error = vec3(sin(texpoint.x) - sin(texpoint.y), cos(texpoint.x) - sin(texpoint.y), sin(texpoint.x) - cos(texpoint.y));
+			normalv = glm::normalize(hitnormal + error);
+		}
 
 		hit->colour = vec3(0, 0, 0);
 		for (int i = 0; i < scene->numlights; i++){

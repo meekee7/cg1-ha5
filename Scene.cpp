@@ -47,8 +47,9 @@ void Scene::loadscenedata(){
 	sceneobjects = new Mesh*[objects];
 	Mesh* cup1 = new Mesh();
 	mat = mat4(vec4(1, 0, 0, 0), vec4(0, 1, 0, 0), vec4(0, 0, 1, 0), vec4(1, 1, 2, 1));
-	cup1->loadOff("scenedata/tasse.off", mat, new Material(vec3(0, 1, 0)), this);
+	cup1->loadOff("scenedata/tasse.off", mat, new Material(vec3(0, 0.7, 0)), this);
 	cup1->setRenderMode(Mesh::GOURAUD_RENDERER);
+	cup1->material->bumpmap = true;
 	sceneobjects[0] = cup1;
 	Mesh* cup2 = new Mesh();
 	Material* texmat = new Material();
