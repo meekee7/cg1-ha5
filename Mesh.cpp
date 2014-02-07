@@ -243,7 +243,7 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 		const vec4 ambv = vec4(0.3f, 0.3f, 0.3f, 1.0f);
 		float shininess = 128.0f;
 		vec3 eye = vec3(0, 5, 20); //see main.cpp
-		vec3 normalv = this->rendermode == Mesh::FLAT_RENDERER ? poly.hnormal : hitnormal; //Second case is flat-shading
+		vec3 normalv = this->rendermode == Mesh::FLAT_RENDERER ? poly.hnormal : hitnormal; //Second case is Gouraud-shading
 
 		if (this->material->bumpmap){
 			texpoint *= 80;

@@ -178,19 +178,18 @@ void ray_trace()
 	clock_t start = std::clock();
 
 	if (motionblur){
-		cout << "First pass begin\n";
+		cout << "Motion blur first pass begin\n";
 		std::vector<vec3> center = raytraceimage(true, depthoffield, modelview);
-		cout << "Second pass begin\n";
+		cout << "Motion blur second pass begin\n";
 		std::vector<vec3> left = raytraceimage(false, false, glm::rotate(modelview, 0.3f, vec3(0, 1, 0)));
-		cout << "Third pass begin\n";
+		cout << "Motion blur third pass begin\n";
 		std::vector<vec3> right = raytraceimage(false, false, glm::rotate(modelview, -0.3f, vec3(0, 1, 0)));
-		cout << "Interpolation begin\n";
+		cout << "Motion blur interpolation begin\n";
 #pragma omp parallel for
 		for (int i = 0; i < (int)center.size(); i++)
 			center[i] = (center[i] + 0.2f * left[i] + 0.2f * right[i]) / 1.4f;
-		//raytraceimage = center;
 		rayTracedImage.resize(w*h);
-		cout << "Blurring begin\n";
+		cout << "Motion blur blurring begin\n";
 #pragma omp parallel for
 		for (int y = 0; y < h; y++)
 			for (int x = 0; x < w; x++){ // http://www.blackpawn.com/texts/blur/
@@ -213,7 +212,7 @@ void ray_trace()
 		std::vector<vec3> img1, img2;
 		img1.resize(w*h);
 		img2.resize(w*h);
-		cout << "Depth of Field first pass begin\n";
+		cout << "Depth of Field horizontal pass begin\n";
 #pragma omp parallel for
 		for (int y = 0; y < h; y++)
 			for (int x = 0; x < w; x++){ // http://www.blackpawn.com/texts/blur/
@@ -227,7 +226,7 @@ void ray_trace()
 					img1[x + y*w] = sum / (float)(radius * 2 + 1);
 				}
 			}
-		cout << "Depth of Field second pass begin\n";
+		cout << "Depth of Field vertical pass begin\n";
 #pragma omp parallel for
 		for (int y = 0; y < h; y++)
 			for (int x = 0; x < w; x++){
@@ -241,17 +240,15 @@ void ray_trace()
 					img2[x + y*w] = sum / (float)(radius * 2 + 1);
 				}
 			}
-		cout << "Depth of Field third pass begin\n";
+		cout << "Depth of Field merge begin\n";
 #pragma omp parallel for
 		for (int i = 0; i < (int)rayTracedImage.size(); i++)
-			//rayTracedImage[i] = img2[i];
 			rayTracedImage[i] = 0.5f* (img1[i] + img2[i]);
 	}
 
 	clock_t stop = std::clock();
 	cout << "Rendered in " << stop - start << " milliseconds\n";
 	cout << scene->intercounter << " triangle intersection tests\n";
-	//rays.clear();
 	// Create an openGL texture if it doesn't exist allready
 	if (!rayTracedImageId)
 	{
