@@ -119,7 +119,6 @@ std::vector<vec3> raytraceimage(bool drawhits, mat4 modelviewmat){
 	img.resize(w*h);
 	if (drawhits)
 		hitpoints.clear();
-	clock_t start = std::clock();
 	for (float y = 0; y < _win_h; y += (1 / _sample_factor))
 		for (float x = 0; x < _win_w; x += (1 / _sample_factor))
 			create_primary_rays(rays, (int)x, (int)y, modelviewmat);
@@ -168,12 +167,30 @@ void ray_trace()
 	clock_t start = std::clock();
 
 	if (motionblur){
+		cout << "First pass begin\n";
 		std::vector<vec3> center = raytraceimage(true, modelview);
+		cout << "Second pass begin\n";
 		std::vector<vec3> left = raytraceimage(false, glm::rotate(modelview, 0.3f, vec3(0, 1, 0)));
+		cout << "Third pass begin\n";
 		std::vector<vec3> right = raytraceimage(false, glm::rotate(modelview, -0.3f, vec3(0, 1, 0)));
-		for (int i = 0; i < center.size(); i++)
+		cout << "Interpolation begin\n";
+#pragma omp parallel for
+		for (int i = 0; i < (int)center.size(); i++)
 			center[i] = (center[i] + 0.2f * left[i] + 0.2f * right[i]) / 1.4f;
-		rayTracedImage = center;
+		//raytraceimage = center;
+		rayTracedImage.resize(w*h);
+#pragma omp parallel for
+		for (int y = 0; y < h; y++)
+			for (int x = 0; x < w; x++){ // http://www.blackpawn.com/texts/blur/
+				vec3 sum = vec3(0, 0, 0);
+				int radius = 1;
+				for (int i = -radius; i <= radius && x+i >= 0 && x + i < w; i++)
+					sum += center[x + i + y*w];
+				rayTracedImage[x + y*w] = sum / (float)(radius * 2 + 1);
+			}
+
+		left.clear();
+		right.clear();
 	}
 	else
 		rayTracedImage = raytraceimage(true, modelview);

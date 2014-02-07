@@ -30,10 +30,14 @@ void Scene::makelights(){
 	l1->position = vec3(0, 0, -2);
 	l1->lightnum = GL_LIGHT0;
 	lights[0] = l1;
-	Light* l2 = new Light();
+	/*Light* l2 = new Light();
 	l2->position = vec3(0, 0, -7);
 	l2->lightnum = GL_LIGHT1;
-	lights[1] = l2;
+	lights[1] = l2;*/
+	Light* l3 = new Light();
+	l3->position = vec3(10, 0, 2);
+	l3->lightnum = GL_LIGHT2;
+	lights[1] = l3;
 }
 
 void Scene::loadscenedata(){

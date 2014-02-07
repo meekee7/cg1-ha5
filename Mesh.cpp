@@ -258,7 +258,7 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 			vec4 specular = vec4(0.0f, 0.0f, 0.0f, 0.0f);
 			if (halfdnormal > 0.0f)
 				specular = diffuse * pow(halfdnormal, shininess) * diffv * specv;
-			vec4 lightedcolour = vec4(0.2f * colour, 1.0f) * ambv + diffuse*vec4(0.75f * colour, 1.0f)*specv + specular;
+			vec4 lightedcolour = vec4(colour, 1.0f) * ambv + diffuse*vec4(colour, 1.0f)*specv + specular;
 
 			hit->colour += (vec3)lightedcolour;
 		}
