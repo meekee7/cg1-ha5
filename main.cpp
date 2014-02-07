@@ -59,6 +59,7 @@ float _world_roty = -35;
 std::vector<Ray> rays;
 std::vector<vec4> hitpoints;
 std::vector<vec3> rayTracedImage;
+std::vector<float> depthmap;
 GLuint rayTracedImageId = 0;
 
 float _sample_factor = 1;
@@ -70,6 +71,7 @@ bool _auto_vis = true;
 
 int _recursions = 2;
 bool motionblur = false;
+bool depthoffield = false;
 
 enum vis_mode { vis_default, vis_opengl, vis_isecs, vis_lods, vis_N };
 int _vis_mode = vis_default;
@@ -108,7 +110,7 @@ void create_primary_rays(std::vector<Ray>& rays, int resx, int resy, mat4 modelv
 	rays.push_back(Ray(start, glm::normalize(end - start), _recursions));
 }
 
-std::vector<vec3> raytraceimage(bool drawhits, mat4 modelviewmat){
+std::vector<vec3> raytraceimage(bool drawhits, bool storedepth, mat4 modelviewmat){
 	std::vector<vec3> img;
 	int w = (int)(_sample_factor * (float)_win_w);
 	int h = (int)(_sample_factor * (float)_win_h);
@@ -119,6 +121,11 @@ std::vector<vec3> raytraceimage(bool drawhits, mat4 modelviewmat){
 	img.resize(w*h);
 	if (drawhits)
 		hitpoints.clear();
+	if (storedepth){
+		depthmap.clear();
+		depthmap.resize(w*h);
+	}
+
 	for (float y = 0; y < _win_h; y += (1 / _sample_factor))
 		for (float x = 0; x < _win_w; x += (1 / _sample_factor))
 			create_primary_rays(rays, (int)x, (int)y, modelviewmat);
@@ -135,6 +142,8 @@ std::vector<vec3> raytraceimage(bool drawhits, mat4 modelviewmat){
 		vec3 fragcolour;
 		if (hit == nullptr){
 			fragcolour = BACKGROUND;
+			if (storedepth)
+				depthmap[coord] = -1;
 		}
 		else {
 			fragcolour = hit->colour;
@@ -143,6 +152,8 @@ std::vector<vec3> raytraceimage(bool drawhits, mat4 modelviewmat){
 					hitpoints.push_back(vec4(hit->reflectray->o, 1));
 				}omp_unset_lock(&lock);
 			}
+			if (storedepth)
+				depthmap[coord] = hit->distance;
 			delete hit;
 		}
 		img[coord] = fragcolour;
@@ -168,32 +179,74 @@ void ray_trace()
 
 	if (motionblur){
 		cout << "First pass begin\n";
-		std::vector<vec3> center = raytraceimage(true, modelview);
+		std::vector<vec3> center = raytraceimage(true, depthoffield, modelview);
 		cout << "Second pass begin\n";
-		std::vector<vec3> left = raytraceimage(false, glm::rotate(modelview, 0.3f, vec3(0, 1, 0)));
+		std::vector<vec3> left = raytraceimage(false, false, glm::rotate(modelview, 0.3f, vec3(0, 1, 0)));
 		cout << "Third pass begin\n";
-		std::vector<vec3> right = raytraceimage(false, glm::rotate(modelview, -0.3f, vec3(0, 1, 0)));
+		std::vector<vec3> right = raytraceimage(false, false, glm::rotate(modelview, -0.3f, vec3(0, 1, 0)));
 		cout << "Interpolation begin\n";
 #pragma omp parallel for
 		for (int i = 0; i < (int)center.size(); i++)
 			center[i] = (center[i] + 0.2f * left[i] + 0.2f * right[i]) / 1.4f;
 		//raytraceimage = center;
 		rayTracedImage.resize(w*h);
+		cout << "Blurring begin\n";
 #pragma omp parallel for
 		for (int y = 0; y < h; y++)
 			for (int x = 0; x < w; x++){ // http://www.blackpawn.com/texts/blur/
 				vec3 sum = vec3(0, 0, 0);
-				int radius = 1;
-				for (int i = -radius; i <= radius && x+i >= 0 && x + i < w; i++)
+				int radius = 2;
+				for (int i = -radius; i <= radius && x + i >= 0 && x + i < w; i++)
 					sum += center[x + i + y*w];
 				rayTracedImage[x + y*w] = sum / (float)(radius * 2 + 1);
 			}
-
+		center.clear();
 		left.clear();
 		right.clear();
 	}
 	else
-		rayTracedImage = raytraceimage(true, modelview);
+		rayTracedImage = raytraceimage(true, depthoffield, modelview);
+
+	if (depthoffield){
+		int blurrad = 1;
+		int distance = -50.0f;
+		std::vector<vec3> img1, img2;
+		img1.resize(w*h);
+		img2.resize(w*h);
+		cout << "Depth of Field first pass begin\n";
+#pragma omp parallel for
+		for (int y = 0; y < h; y++)
+			for (int x = 0; x < w; x++){ // http://www.blackpawn.com/texts/blur/
+				if (depthmap[x + y*w] < 0)
+					img1[x + y*w] = rayTracedImage[x + y*w];
+				else {
+					vec3 sum = vec3(0, 0, 0);
+					int radius = abs(blurrad * (distance + depthmap[x + y*w]));
+					for (int i = -radius; i <= radius && x + i >= 0 && x + i < w; i++)
+						sum += rayTracedImage[x + i + y*w];
+					img1[x + y*w] = sum / (float)(radius * 2 + 1);
+				}
+			}
+		cout << "Depth of Field second pass begin\n";
+#pragma omp parallel for
+		for (int y = 0; y < h; y++)
+			for (int x = 0; x < w; x++){
+				if (depthmap[x + y*w] < 0)
+					img2[x + y*w] = rayTracedImage[x + y*w];
+				else {
+					vec3 sum = vec3(0, 0, 0);
+					int radius = abs(blurrad * (distance + depthmap[x + y*w]));
+					for (int i = -radius; i <= radius && y + i >= 0 && y + i < h; i++)
+						sum += rayTracedImage[x + (y + i)*w];
+					img2[x + y*w] = sum / (float)(radius * 2 + 1);
+				}
+			}
+		cout << "Depth of Field third pass begin\n";
+#pragma omp parallel for
+		for (int i = 0; i < (int)rayTracedImage.size(); i++)
+			//rayTracedImage[i] = img2[i];
+			rayTracedImage[i] = 0.5f* (img1[i] + img2[i]);
+	}
 
 	clock_t stop = std::clock();
 	cout << "Rendered in " << stop - start << " milliseconds\n";
@@ -399,7 +452,7 @@ void main_display()
 	text2 << "key l\t: +/- recursion level $2" << _recursions << "$0\n";
 	text2 << "key b\t: enable/disable shadow ($2" << (scene->showshadow ? "enabled" : "disabled") << "$0)\n";
 	text2 << "key m\t: enable/disable motion blur ($2" << (motionblur ? "enabled" : "disabled") << "$0)\n";
-
+	text2 << "key d\t: enable/disable depth of field ($2" << (depthoffield ? "enabled" : "disabled") << "$0)\n";
 	draw_string(_win_gap, _win_gap + _win_h + _win_gap + 12, text.str());
 	draw_string(2 * _win_gap + _win_w, _win_gap + _win_h + _win_gap + 12, text2.str());
 
@@ -639,6 +692,11 @@ void main_keyboard(unsigned char key, int x, int y)
 	case 'm':
 	case 'M':
 		motionblur = !motionblur;
+		break;
+	case 'd':
+	case 'D':
+		depthoffield = !depthoffield;
+		break;
 	}
 	redisplay_all();
 	x = 0;
