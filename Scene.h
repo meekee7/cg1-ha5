@@ -12,6 +12,7 @@ public:
 	~Scene();
 	void loadscenedata();
 	Hitresult* intersectscene(Ray* ray);
+	Hitresult* hitany(Ray* ray, float distance);
 	void renderscenegl();
 	Light** lights;
 	int numlights;

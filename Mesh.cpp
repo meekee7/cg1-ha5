@@ -49,10 +49,10 @@ bool Mesh::loadOff(std::string filename, mat4 modelview, Material* material, voi
 		polygon = new poly[polygons];
 		for (int i = 0; i < nodes; i++)
 			if (getline(modelfile, line)){
-				std::istringstream istr(line);
-				node[i].normal = vec3(0, 0, 0);
-				node[i].hnormal = vec3(0, 0, 0);
-				istr >> node[i].node.x >> node[i].node.y >> node[i].node.z;
+			std::istringstream istr(line);
+			node[i].normal = vec3(0, 0, 0);
+			node[i].hnormal = vec3(0, 0, 0);
+			istr >> node[i].node.x >> node[i].node.y >> node[i].node.z;
 			}
 			else {
 				modelfile.close();
@@ -92,17 +92,17 @@ bool Mesh::loadOff(std::string filename, mat4 modelview, Material* material, voi
 			}
 			for (int i = 0; i < polygons; i++)
 				if (getline(modelfile, line)){
-					std::istringstream istr(line);
-					istr >> polygon[i].size;
-					polygon[i].nodes = new int[polygon[i].size];
-					for (int j = 0; j < polygon[i].size; j++)
-						istr >> polygon[i].nodes[j];
-					{ //Calculate surface normal vector
-						vec3 a = node[polygon[i].nodes[0]].node - node[polygon[i].nodes[1]].node;
-						vec3 b = node[polygon[i].nodes[1]].node - node[polygon[i].nodes[2]].node;
-						polygon[i].normal = glm::normalize(glm::cross(a, b));
-						polygon[i].hnormal = glm::normalize(glm::cross(node[polygon[i].nodes[2]].node - node[polygon[i].nodes[0]].node, node[polygon[i].nodes[1]].node - node[polygon[i].nodes[0]].node));
-					}
+				std::istringstream istr(line);
+				istr >> polygon[i].size;
+				polygon[i].nodes = new int[polygon[i].size];
+				for (int j = 0; j < polygon[i].size; j++)
+					istr >> polygon[i].nodes[j];
+				{ //Calculate surface normal vector
+					vec3 a = node[polygon[i].nodes[0]].node - node[polygon[i].nodes[1]].node;
+					vec3 b = node[polygon[i].nodes[1]].node - node[polygon[i].nodes[2]].node;
+					polygon[i].normal = glm::normalize(glm::cross(a, b));
+					polygon[i].hnormal = glm::normalize(glm::cross(node[polygon[i].nodes[2]].node - node[polygon[i].nodes[0]].node, node[polygon[i].nodes[1]].node - node[polygon[i].nodes[0]].node));
+				}
 					{ //Apply surface normal vector to vertex normal vectors
 						for (int j = 0; j < 3; j++){
 							node[polygon[i].nodes[j]].normal += polygon[i].normal;
@@ -164,22 +164,35 @@ bool Mesh::loadOff(std::string filename, mat4 modelview, Material* material, voi
 	return true;
 }
 
+Hitresult* Mesh::hitany(Ray* ray, float distance){
+	if (this->intersectboundarybox(ray))
+		for (int i = 0; i < this->polygons; i++){
+		Hitresult* intersect = this->intersectpolygon(this->polygon[i], ray);
+		if (intersect != nullptr)
+			if (intersect->distance <= distance)
+				return intersect;
+			else
+				delete intersect;
+		}
+	return nullptr;
+}
+
 Hitresult* Mesh::intersectModel(Ray* ray){
 	int closestpoly = NONE;
 	Hitresult* hit = nullptr;
 	if (this->intersectboundarybox(ray))
 		for (int i = 0; i < this->polygons; i++){
-			Hitresult* intersect = this->intersectpolygon(polygon[i], ray);
-			if (intersect != nullptr)
-				if (hit == nullptr){
-					hit = intersect;
-					closestpoly = i;
-				}
-				else if (intersect->distance < hit->distance){
-					delete hit;
-					hit = intersect;
-					closestpoly = i;
-				}
+		Hitresult* intersect = this->intersectpolygon(this->polygon[i], ray);
+		if (intersect != nullptr)
+			if (hit == nullptr){
+			hit = intersect;
+			closestpoly = i;
+			}
+			else if (intersect->distance < hit->distance){
+				delete hit;
+				hit = intersect;
+				closestpoly = i;
+			}
 		}
 	if (hit != nullptr){
 		hit->originmodel = this;
@@ -200,7 +213,7 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 	float t = invdet * glm::dot(glm::cross(ray->o - node[poly.nodes[0]].node, v2mv1), v3mv1);
 	float u = invdet * glm::dot(glm::cross(ray->d, v3mv1), ray->o - node[poly.nodes[0]].node);
 	float v = invdet * glm::dot(glm::cross(ray->o - node[poly.nodes[0]].node, v2mv1), ray->d);
-	if (0.0f < t && 0.0f < u && 0.0f < v && ((u + v) < 1)){
+	if (0.0f < t && 0.0f < u && 0.0f < v && ((u + v) < 1.0f)){
 		Hitresult* hit = new Hitresult();
 		hit->distance = t;
 		vec3 origin = ray->att(t);;
@@ -222,7 +235,7 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 			vec4 texel = this->material->texture[this->material->texheight*(int)point.y + (int)point.x];
 			colour = vec3(texel.r, texel.g, texel.b);
 		}
-		else if (this->material->reflecting){
+		else if (this->material->reflecting)
 			if (ray->duration <= 1)
 				colour = BACKGROUND;
 			else {
@@ -234,7 +247,6 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 				else
 					colour = BACKGROUND;
 			}
-		}
 		else
 			colour = this->material->colour;
 
@@ -255,10 +267,11 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 		for (int i = 0; i < scene->numlights; i++){
 			vec3 lightpos = scene->lights[0]->position;
 			vec3 lightdir = glm::normalize(lightpos - hit->reflectray->o);
+			float distance = glm::length(scene->lights[0]->position - hit->reflectray->o);
 			if (scene->showshadow){ //Shadow
 				Ray* shadowray = new Ray(hit->reflectray->o, lightdir, 1);
 				shadowray->shadowtest = true;
-				Hitresult* shadowhit = scene->intersectscene(shadowray);
+				Hitresult* shadowhit = scene->hitany(shadowray, distance);
 				bool isshadow = shadowhit != nullptr && shadowhit->distance < glm::length(lightpos - hit->reflectray->o);
 				delete shadowhit;
 				delete shadowray;

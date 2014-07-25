@@ -130,3 +130,12 @@ Hitresult* Scene::intersectscene(Ray* ray){
 	}
 	return result;
 }
+
+Hitresult* Scene::hitany(Ray* ray, float distance){
+	for (int i = 0; i < objects; i++){
+		Hitresult* hit = sceneobjects[i]->hitany(ray, distance);
+		if (hit != nullptr)
+			return hit;
+	}
+	return nullptr;
+}

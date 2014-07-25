@@ -80,14 +80,14 @@ char* _vis_names[vis_N] = { "raytraced image", "opengl shaded" };
 
 void save() {
 	string filename = "renderedimage.ppm";
-	cout << "Output to " << filename << "\n";
+	cout << "Output to " << filename << '\n';
 	std::ofstream f;
 	f.open(filename.c_str(), std::ios_base::trunc);
-	f << "P3\n" << _sample_width << " " << _sample_height << "\n255\n";
+	f << "P3\n" << _sample_width << ' ' << _sample_height << "\n255\n";
 	for (int y = _sample_height - 1; y; y--)
 		for (int x = 0; x < _sample_width; x++)	{
-			int i = y * _sample_width + x;
-			f << (int)(rayTracedImage[i].x * 255) << " " << (int)(rayTracedImage[i].y * 255) << " " << (int)(rayTracedImage[i].z * 255) << " ";
+		int i = y * _sample_width + x;
+		f << (int)(rayTracedImage[i].x * 255) << ' ' << (int)(rayTracedImage[i].y * 255) << ' ' << (int)(rayTracedImage[i].z * 255) << ' ';
 		}
 	f.close();
 	cout << "Output complete\n";
@@ -193,11 +193,11 @@ void ray_trace()
 #pragma omp parallel for
 		for (int y = 0; y < h; y++)
 			for (int x = 0; x < w; x++){ // http://www.blackpawn.com/texts/blur/
-				vec3 sum = vec3(0, 0, 0);
-				int radius = 2;
-				for (int i = -radius; i <= radius && x + i >= 0 && x + i < w; i++)
-					sum += center[x + i + y*w];
-				rayTracedImage[x + y*w] = sum / (float)(radius * 2 + 1);
+			vec3 sum = vec3(0, 0, 0);
+			int radius = 2;
+			for (int i = -radius; i <= radius && x + i >= 0 && x + i < w; i++)
+				sum += center[x + i + y*w];
+			rayTracedImage[x + y*w] = sum / (float)(radius * 2 + 1);
 			}
 		center.clear();
 		left.clear();
@@ -216,29 +216,29 @@ void ray_trace()
 #pragma omp parallel for
 		for (int y = 0; y < h; y++)
 			for (int x = 0; x < w; x++){ // http://www.blackpawn.com/texts/blur/
-				if (depthmap[x + y*w] < 0)
-					img1[x + y*w] = rayTracedImage[x + y*w];
-				else {
-					vec3 sum = vec3(0, 0, 0);
-					int radius = (int)abs(blurrad * (distance + depthmap[x + y*w]));
-					for (int i = -radius; i <= radius && x + i >= 0 && x + i < w; i++)
-						sum += rayTracedImage[x + i + y*w];
-					img1[x + y*w] = sum / (float)(radius * 2 + 1);
-				}
+			if (depthmap[x + y*w] < 0)
+				img1[x + y*w] = rayTracedImage[x + y*w];
+			else {
+				vec3 sum = vec3(0, 0, 0);
+				int radius = (int)abs(blurrad * (distance + depthmap[x + y*w]));
+				for (int i = -radius; i <= radius && x + i >= 0 && x + i < w; i++)
+					sum += rayTracedImage[x + i + y*w];
+				img1[x + y*w] = sum / (float)(radius * 2 + 1);
+			}
 			}
 		cout << "Depth of Field vertical pass begin\n";
 #pragma omp parallel for
 		for (int y = 0; y < h; y++)
 			for (int x = 0; x < w; x++){
-				if (depthmap[x + y*w] < 0)
-					img2[x + y*w] = rayTracedImage[x + y*w];
-				else {
-					vec3 sum = vec3(0, 0, 0);
-					int radius = (int)abs(blurrad * (distance + depthmap[x + y*w]));
-					for (int i = -radius; i <= radius && y + i >= 0 && y + i < h; i++)
-						sum += rayTracedImage[x + (y + i)*w];
-					img2[x + y*w] = sum / (float)(radius * 2 + 1);
-				}
+			if (depthmap[x + y*w] < 0)
+				img2[x + y*w] = rayTracedImage[x + y*w];
+			else {
+				vec3 sum = vec3(0, 0, 0);
+				int radius = (int)abs(blurrad * (distance + depthmap[x + y*w]));
+				for (int i = -radius; i <= radius && y + i >= 0 && y + i < h; i++)
+					sum += rayTracedImage[x + (y + i)*w];
+				img2[x + y*w] = sum / (float)(radius * 2 + 1);
+			}
 			}
 		cout << "Depth of Field merge begin\n";
 #pragma omp parallel for
@@ -446,7 +446,7 @@ void main_display()
 	std::ostringstream text2;
 	text2 << "key s,S\t: +/- sampling factor $2" << _sample_factor << "$0\n";
 	text2 << "key i\t: render image to file\n";
-	text2 << "key l\t: +/- recursion level $2" << _recursions << "$0\n";
+	text2 << "key l,L\t: +/- recursion level $2" << _recursions << "$0\n";
 	text2 << "key b\t: enable/disable shadow ($2" << (scene->showshadow ? "enabled" : "disabled") << "$0)\n";
 	text2 << "key m\t: enable/disable motion blur ($2" << (motionblur ? "enabled" : "disabled") << "$0)\n";
 	text2 << "key d\t: enable/disable depth of field ($2" << (depthoffield ? "enabled" : "disabled") << "$0)\n";
@@ -706,6 +706,7 @@ void idle()
 
 int main(int argc, char** argv)
 {
+	std::cout << "Selftest of raytracing routine" << '\n';
 	Mesh* mesh = new Mesh();
 	mesh->loadOff("scenedata/drei.off", 2 * IDENTITY4, new Material(vec3(0, 1, 0)), scene);
 	//mesh->printmesh();
@@ -714,10 +715,11 @@ int main(int argc, char** argv)
 	if (hit == nullptr)
 		std::cout << "No hit\n";
 	else{
-		std::cout << "Distance " << hit->distance << "\n";
-		std::cout << "Hitpoint " << hit->reflectray->o.x << " " << hit->reflectray->o.y << " " << hit->reflectray->o.z << "\n";
-		std::cout << "Reflection " << hit->reflectray->d.x << " " << hit->reflectray->d.y << " " << hit->reflectray->d.z << "\n";
+		std::cout << "Distance " << hit->distance << '\n';
+		std::cout << "Hitpoint " << hit->reflectray->o.x << ' ' << hit->reflectray->o.y << ' ' << hit->reflectray->o.z << '\n';
+		std::cout << "Reflection " << hit->reflectray->d.x << ' ' << hit->reflectray->d.y << ' ' << hit->reflectray->d.z << '\n';
 	}
+	std::cout << "Selftest complete" << '\n';
 	scene->loadscenedata();
 	// Init OpenGL stuffs
 	glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
