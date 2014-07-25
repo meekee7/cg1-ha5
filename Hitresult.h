@@ -12,5 +12,10 @@ public:
 	Ray* reflectray;
 	int originpoly;
 	void* originmodel;
+	struct {
+		float u;
+		float v;
+		Ray* ray;
+	} shadestuff;
 };
 

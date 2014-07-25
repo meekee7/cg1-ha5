@@ -167,7 +167,7 @@ bool Mesh::loadOff(std::string filename, mat4 modelview, Material* material, voi
 Hitresult* Mesh::hitany(Ray* ray, float distance){
 	if (this->intersectboundarybox(ray))
 		for (int i = 0; i < this->polygons; i++){
-		Hitresult* intersect = this->intersectpolygon(this->polygon[i], ray);
+		Hitresult* intersect = this->intersectpolygon(i, ray);
 		if (intersect != nullptr)
 			if (intersect->distance <= distance)
 				return intersect;
@@ -182,7 +182,7 @@ Hitresult* Mesh::intersectModel(Ray* ray){
 	Hitresult* hit = nullptr;
 	if (this->intersectboundarybox(ray))
 		for (int i = 0; i < this->polygons; i++){
-		Hitresult* intersect = this->intersectpolygon(this->polygon[i], ray);
+		Hitresult* intersect = this->intersectpolygon(i, ray);
 		if (intersect != nullptr)
 			if (hit == nullptr){
 			hit = intersect;
@@ -200,8 +200,9 @@ Hitresult* Mesh::intersectModel(Ray* ray){
 	}
 	return hit;
 }
-Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
+Hitresult* Mesh::intersectpolygon(int polynum, Ray* ray){
 	Scene* scene = (Scene*) this->scene;
+	poly poly = this->polygon[polynum];
 	scene->intercounter++;
 	if (glm::dot(ray->d, poly.hnormal) <= 0.0f) //Wrong direction, no chance for a hit
 		return nullptr;
@@ -216,7 +217,7 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 	if (0.0f < t && 0.0f < u && 0.0f < v && ((u + v) < 1.0f)){
 		Hitresult* hit = new Hitresult();
 		hit->distance = t;
-		vec3 origin = ray->att(t);;
+		vec3 origin = ray->att(t);
 		vec3 hitnormal = glm::normalize(u*node[poly.nodes[1]].hnormal + v*node[poly.nodes[2]].hnormal + (1 - u - v)*node[poly.nodes[0]].hnormal);
 		vec3 direction = glm::normalize(-2.0f * dot(ray->d, hitnormal)*hitnormal - ray->d);
 		hit->reflectray = new Ray(origin, direction, ray->duration - 1);
@@ -224,93 +225,121 @@ Hitresult* Mesh::intersectpolygon(poly poly, Ray* ray){
 		if (ray->shadowtest) //We do not need the rest and avoid endless recursion 
 			return hit;
 
-		vec2 texpoint;
-		if (this->material->bumpmap || this->material->usetexture)
-			texpoint = u*node[poly.nodes[1]].tex + v*node[poly.nodes[2]].tex + (1 - u - v)*node[poly.nodes[0]].tex;
-		vec3 colour;
-		if (this->material->usetexture){
-			vec2 point = texpoint;
-			point.x *= this->material->texwidth;
-			point.y *= this->material->texheight;
-			vec4 texel = this->material->texture[this->material->texheight*(int)point.y + (int)point.x];
-			colour = vec3(texel.r, texel.g, texel.b);
-		}
-		else if (this->material->reflecting)
-			if (ray->duration <= 1)
-				colour = BACKGROUND;
-			else {
-				Hitresult* reflection = scene->intersectscene(hit->reflectray);
-				if (reflection != nullptr){
-					colour = reflection->colour;
-					delete reflection;
-				}
-				else
-					colour = BACKGROUND;
-			}
-		else
-			colour = this->material->colour;
+		hit->originmodel = this;
+		hit->originpoly = polynum;
+		hit->shadestuff.u = u;
+		hit->shadestuff.v = v;
+		hit->shadestuff.ray = ray;
 
-		const vec4 specv = vec4(0.7f, 0.7f, 0.7f, 1.0f);
-		const vec4 diffv = vec4(0.6f, 0.6f, 0.6f, 1.0f);
-		const vec4 ambv = vec4(0.3f, 0.3f, 0.3f, 1.0f);
-		float shininess = 128.0f;
-		vec3 eye = vec3(0, 5, 20); //see main.cpp
-		vec3 normalv = this->rendermode == Mesh::FLAT_RENDERER ? poly.hnormal : hitnormal; //Second case is Gouraud-shading
-
-		if (this->material->bumpmap){
-			texpoint *= 80;
-			vec3 error = vec3(sin(texpoint.x) - sin(texpoint.y), cos(texpoint.x) - sin(texpoint.y), sin(texpoint.x) - cos(texpoint.y));
-			normalv = glm::normalize(hitnormal + error);
-		}
-
-		hit->colour = vec3(0, 0, 0);
-		for (int i = 0; i < scene->numlights; i++){
-			vec3 lightpos = scene->lights[0]->position;
-			vec3 lightdir = glm::normalize(lightpos - hit->reflectray->o);
-			float distance = glm::length(scene->lights[0]->position - hit->reflectray->o);
-			if (scene->showshadow){ //Shadow
-				Ray* shadowray = new Ray(hit->reflectray->o, lightdir, 1);
-				shadowray->shadowtest = true;
-				Hitresult* shadowhit = scene->hitany(shadowray, distance);
-				bool isshadow = shadowhit != nullptr && shadowhit->distance < glm::length(lightpos - hit->reflectray->o);
-				delete shadowhit;
-				delete shadowray;
-				if (isshadow){
-					hit->colour = vec3(0, 0, 0);
-					return hit;
-				}
-			}
-			vec3 half = glm::normalize(lightdir + eye);
-			float diffuse = glm::dot(normalv, lightdir);
-			diffuse = diffuse < 0.0f ? 0.0f : (diffuse > 1.0f ? 1.0f : diffuse);
-			float halfdnormal = glm::dot(half, normalv);
-			vec4 specular = vec4(0.0f, 0.0f, 0.0f, 0.0f);
-			if (halfdnormal > 0.0f)
-				specular = diffuse * pow(halfdnormal, shininess) * diffv * specv;
-			vec4 lightedcolour = vec4(colour, 1.0f) * ambv + diffuse*vec4(colour, 1.0f)*specv + specular;
-
-			hit->colour += (vec3)lightedcolour;
-		}
 		return hit;
 	}
 	else
 		return nullptr;
 }
 
-void Mesh::swap(float* a, float* b){
+vec3 Mesh::shade(Hitresult* hit){
+	Scene* scene = (Scene*) this->scene;
+	poly poly = this->polygon[hit->originpoly];
+	float u = hit->shadestuff.u;
+	float v = hit->shadestuff.v;
+	Ray* ray = hit->shadestuff.ray;
+	vec3 hitnormal = glm::normalize(u*node[poly.nodes[1]].hnormal + v*node[poly.nodes[2]].hnormal + (1 - u - v)*node[poly.nodes[0]].hnormal);
+
+	vec2 texpoint;
+	if (this->material->bumpmap || this->material->usetexture)
+		texpoint = u*node[poly.nodes[1]].tex + v*node[poly.nodes[2]].tex + (1 - u - v)*node[poly.nodes[0]].tex;
+	vec3 colour;
+	if (this->material->usetexture){
+		vec2 point = texpoint;
+		point.x *= this->material->texwidth;
+		point.y *= this->material->texheight;
+		vec4 texel = this->material->texture[this->material->texheight*(int)point.y + (int)point.x];
+		colour = vec3(texel.r, texel.g, texel.b);
+	}
+	else 
+		colour = this->material->colour;
+
+	if (this->material->reflecting && ray->duration > 1){
+		Hitresult* reflection = scene->intersectscene(hit->reflectray);
+		if (reflection != nullptr){
+			colour = reflection->colour;
+			delete reflection;
+		}
+	}
+
+	const vec4 specv = vec4(0.7f, 0.7f, 0.7f, 1.0f);
+	const vec4 diffv = vec4(0.6f, 0.6f, 0.6f, 1.0f);
+	const vec4 ambv = vec4(0.3f, 0.3f, 0.3f, 1.0f);
+	float shininess = 128.0f;
+	vec3 eye = vec3(0, 5, 20); //see main.cpp
+	vec3 normalv = this->rendermode == Mesh::FLAT_RENDERER ? poly.hnormal : hitnormal; //Second case is Gouraud-shading
+
+	if (this->material->bumpmap){
+		texpoint *= 80;
+		vec3 error = vec3(sin(texpoint.x) - sin(texpoint.y), cos(texpoint.x) - sin(texpoint.y), sin(texpoint.x) - cos(texpoint.y));
+		normalv = glm::normalize(hitnormal + error);
+	}
+
+	hit->colour = vec3(0, 0, 0);
+	int shadowcount = 0;
+	for (int i = 0; i < scene->numlights; i++){
+		vec3 lightpos = scene->lights[i]->position;
+		vec3 lightdir = glm::normalize(lightpos - hit->reflectray->o);
+		float distance = glm::length(scene->lights[i]->position - hit->reflectray->o);
+
+		vec3 half = glm::normalize(lightdir + eye);
+		float diffuse = glm::dot(normalv, lightdir);
+		diffuse = diffuse < 0.0f ? 0.0f : (diffuse > 1.0f ? 1.0f : diffuse);
+		float halfdnormal = glm::dot(half, normalv);
+		vec4 specular = vec4(0.0f, 0.0f, 0.0f, 0.0f);
+		if (halfdnormal > 0.0f)
+			specular = diffuse * pow(halfdnormal, shininess) * diffv * specv;
+		vec4 lightedcolour = vec4(colour, 1.0f) * ambv + diffuse*vec4(colour, 1.0f)*specv + specular;
+
+		hit->colour += (vec3)lightedcolour;
+
+		if (scene->showshadow){ //Shadow
+			Ray* shadowray = new Ray(hit->reflectray->o, lightdir, 1);
+			shadowray->shadowtest = true;
+			Hitresult* shadowhit = scene->hitany(shadowray, distance);
+			bool isshadow = shadowhit != nullptr && shadowhit->distance < glm::length(lightpos - hit->reflectray->o);
+			delete shadowhit;
+			delete shadowray;
+			if (isshadow)
+				shadowcount++;
+		}
+	}
+	hit->colour *= glm::pow(0.3f, (float)shadowcount);
+
+	if (this->material->celshade){
+		if (abs(glm::dot(ray->d, hitnormal)) < 0.1f)
+			hit->colour = vec3(0.0f, 0.0f, 0.0f);
+		else if (hit->colour.b < 0.1f)
+			hit->colour.b = 0.0f;
+		else if (hit->colour.b < 0.3f)
+			hit->colour.b = 0.2f;
+		else if (hit->colour.b < 0.6f)
+			hit->colour.b = 0.5f;
+		else if (hit->colour.b < 0.9f)
+			hit->colour.b = 0.8f;
+		else
+			hit->colour.b = 1.0f;
+	}
+
+	return hit->colour;
+}
+
+void inline Mesh::swap(float* a, float* b){
 	float t = *a;
 	*a = *b;
 	*b = t;
 }
 
 bool Mesh::intersectboundarybox(Ray* ray){
-	vec3 tmin, tmax;
-	tmin.x = (this->boundaries.min.x - ray->o.x) / ray->d.x;
-	tmax.x = (this->boundaries.max.x - ray->o.x) / ray->d.x;
+	vec3 tmin = (this->boundaries.min - ray->o) / ray->d;
+	vec3 tmax = (this->boundaries.max - ray->o) / ray->d;
 	if (ray->d.x < 0)
 		swap(&tmin.x, &tmax.x);
-	tmin.y = (this->boundaries.min.y - ray->o.y) / ray->d.y;
-	tmax.y = (this->boundaries.max.y - ray->o.y) / ray->d.y;
 	if (ray->d.y < 0)
 		swap(&tmin.y, &tmax.y);
 	if (tmin.x > tmax.y || tmin.y > tmax.y)
@@ -319,8 +348,6 @@ bool Mesh::intersectboundarybox(Ray* ray){
 		tmin.x = tmin.y;
 	if (tmax.y < tmax.x)
 		tmax.x = tmax.y;
-	tmin.z = (this->boundaries.min.z - ray->o.z) / ray->d.z;
-	tmax.z = (this->boundaries.max.z - ray->o.z) / ray->d.z;
 	if (ray->d.z < 0)
 		swap(&tmin.z, &tmax.z);
 	if (tmin.x > tmax.z || tmin.z > tmax.x)
@@ -403,19 +430,19 @@ void Mesh::renderTextured(){
 }
 
 void Mesh::printmesh(){
-	cout << "Nodes: " << nodes << " Polygons: " << polygons << " Edges: " << edges << "\n";
+	cout << "Nodes: " << nodes << " Polygons: " << polygons << " Edges: " << edges << '\n';
 	cout << "Nodes: \n";
 	for (int i = 0; i < nodes; i++){
-		cout << i << ": " << node[i].node[0] << " " << node[i].node[1] << " " << node[i].node[2] << "\n";
-		cout << "Normal " << node[i].normal[0] << " " << node[i].normal[1] << " " << node[i].normal[2] << "\n";
+		cout << i << ": " << node[i].node[0] << ' ' << node[i].node[1] << ' ' << node[i].node[2] << '\n';
+		cout << "Normal " << node[i].normal[0] << ' ' << node[i].normal[1] << ' ' << node[i].normal[2] << '\n';
 	}
 	cout << "Polygons: \n";
 	for (int i = 0; i < polygons; i++)
 	{
 		cout << i << ": with " << polygon[i].size << " Nodes: ";
 		for (int j = 0; j < polygon[i].size; j++)
-			cout << polygon[i].nodes[j] << " ";
-		cout << "Normal " << polygon[i].normal[0] << " " << polygon[i].normal[1] << " " << polygon[i].normal[2] << "\n";
+			cout << polygon[i].nodes[j] << ' ';
+		cout << "Normal " << polygon[i].normal[0] << ' ' << polygon[i].normal[1] << ' ' << polygon[i].normal[2] << '\n';
 	}
 }
 

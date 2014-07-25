@@ -43,7 +43,7 @@ void Scene::makelights(){
 void Scene::loadscenedata(){
 	this->makelights();
 	mat4 mat;
-	objects = 8;
+	objects = 9;
 	sceneobjects = new Mesh*[objects];
 	Mesh* cup1 = new Mesh();
 	mat = mat4(vec4(1, 0, 0, 0), vec4(0, 1, 0, 0), vec4(0, 0, 1, 0), vec4(1, 1, 2, 1));
@@ -60,36 +60,46 @@ void Scene::loadscenedata(){
 	sceneobjects[1] = cup2;
 	Mesh* cup3 = new Mesh();
 	mat = mat4(vec4(1, 0, 0, 0), vec4(0, 1, 0, 0), vec4(0, 0, 1, 0), vec4(0, 0, 0, 1));
-	cup3->loadOff("scenedata/tasse.off", mat, MIRRORMAT, this);
+	cup3->loadOff("scenedata/tasse.off", mat, new Material(BACKGROUND), this);
 	cup3->setRenderMode(Mesh::GOURAUD_RENDERER);
+	cup3->material->reflecting = true;
 	sceneobjects[2] = cup3;
+	Mesh* cup4 = new Mesh();
+	mat = mat4(vec4(1, 0, 0, 0), vec4(0, 1, 0, 0), vec4(0, 0, 1, 0), vec4(-4, 0, 2, 1));
+	cup4->loadOff("scenedata/tasse.off", mat, new Material(vec3(0, 0, 0.7)), this);
+	cup4->setRenderMode(Mesh::GOURAUD_RENDERER);
+	cup4->material->celshade = true;
+	cup4->material->bumpmap = true;
+	sceneobjects[3] = cup4;
 	Mesh* planeback = new Mesh();
 	mat = mat4(vec4(10, 0, 0, 0), vec4(0, 10, 0, 0), vec4(0, 0, 10, 0), vec4(0, 0, -8, 1));
-	planeback->loadOff("scenedata/planeback.off", mat, MIRRORMAT, this);
+	planeback->loadOff("scenedata/planeback.off", mat, new Material(BACKGROUND), this);
 	planeback->setRenderMode(Mesh::FLAT_RENDERER);
-	sceneobjects[3] = planeback;
+	planeback->material->reflecting = true;
+	sceneobjects[4] = planeback;
 	Mesh* planeleft = new Mesh();
 	mat = mat4(vec4(10, 0, 0, 0), vec4(0, 10, 0, 0), vec4(0, 0, 10, 0), vec4(-8, 0, 0, 1));
 	planeleft->loadOff("scenedata/planeverti.off", mat, new Material(vec3(0.8, 0.8, 0.0)), this);
 	planeleft->setRenderMode(Mesh::FLAT_RENDERER);
 	planeleft->invertnormals();
-	sceneobjects[4] = planeleft;
+	sceneobjects[5] = planeleft;
 	Mesh* planeright = new Mesh();
 	mat = mat4(vec4(10, 0, 0, 0), vec4(0, 10, 0, 0), vec4(0, 0, 10, 0), vec4(8, 0, 0, 1));
 	planeright->loadOff("scenedata/planeverti.off", mat, new Material(vec3(0.0, 0.8, 0.8)), this);
 	planeright->setRenderMode(Mesh::FLAT_RENDERER);
-	sceneobjects[5] = planeright;
+	sceneobjects[6] = planeright;
 	Mesh* planeup = new Mesh();
 	mat = mat4(vec4(10, 0, 0, 0), vec4(0, 10, 0, 0), vec4(0, 0, 10, 0), vec4(0, 8, 0, 1));
-	planeup->loadOff("scenedata/planehori.off", mat, MIRRORMAT, this);
+	planeup->loadOff("scenedata/planehori.off", mat, new Material(BACKGROUND), this);
 	planeup->setRenderMode(Mesh::FLAT_RENDERER);
 	planeup->invertnormals();
-	sceneobjects[6] = planeup;
+	planeup->material->reflecting = true;
+	sceneobjects[7] = planeup;
 	Mesh* planedown = new Mesh();
 	mat = mat4(vec4(10, 0, 0, 0), vec4(0, 10, 0, 0), vec4(0, 0, 10, 0), vec4(0, -8, 0, 1));
 	planedown->loadOff("scenedata/planehori.off", mat, new Material(vec3(0.8, 0.0, 0.8)), this);
 	planedown->setRenderMode(Mesh::FLAT_RENDERER);
-	sceneobjects[7] = planedown;
+	sceneobjects[8] = planedown;
 }
 
 void Scene::renderscenegl(){
@@ -127,6 +137,10 @@ Hitresult* Scene::intersectscene(Ray* ray){
 				result = hit;
 			}
 		}
+	}
+	if (result != nullptr){
+		Mesh* mesh = (Mesh*)result->originmodel;
+		mesh->shade(result);
 	}
 	return result;
 }

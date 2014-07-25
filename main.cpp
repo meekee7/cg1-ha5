@@ -711,7 +711,7 @@ int main(int argc, char** argv)
 	mesh->loadOff("scenedata/drei.off", 2 * IDENTITY4, new Material(vec3(0, 1, 0)), scene);
 	//mesh->printmesh();
 	Ray* ray = new Ray(vec3(-1, 0, 0), vec3(1, 0, 0));
-	Hitresult* hit = mesh->intersectpolygon(mesh->polygon[0], ray);
+	Hitresult* hit = mesh->intersectpolygon(0, ray);
 	if (hit == nullptr)
 		std::cout << "No hit\n";
 	else{

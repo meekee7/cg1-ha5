@@ -2,7 +2,6 @@
 #include <cstring>
 #include <vector>
 //#include "Scene.h"
-#define MIRRORMAT new Material()
 using namespace glm;
 using namespace std;
 #pragma once
@@ -16,6 +15,7 @@ public:
 	bool reflecting;
 	bool usetexture;
 	bool bumpmap;
+	bool celshade;
 	int texwidth;
 	int texheight;
 	std::vector<glm::vec4> texture;

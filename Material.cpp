@@ -8,6 +8,7 @@ Material::Material()
 	this->reflecting = true;
 	this->usetexture = false;
 	this->bumpmap = false;
+	this->celshade = false;
 }
 
 Material::Material(vec3 colour){
@@ -15,6 +16,7 @@ Material::Material(vec3 colour){
 	this->reflecting = false;
 	this->usetexture = false;
 	this->bumpmap = false;
+	this->celshade = false;
 }
 
 Material::~Material()

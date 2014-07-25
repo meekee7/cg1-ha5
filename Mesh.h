@@ -50,7 +50,8 @@ public:
 	void renderSmooth();
 	void renderTextured();
 
-	Hitresult* intersectpolygon(poly poly, Ray* ray);
+	vec3 Mesh::shade(Hitresult* hit);
+	Hitresult* intersectpolygon(int polynum, Ray* ray);
 	Hitresult* hitany(Ray* ray, float distance);
 	bool intersectboundarybox(Ray* ray);
 	void swap(float* a, float*b);
