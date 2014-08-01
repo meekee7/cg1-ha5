@@ -174,6 +174,7 @@ void ray_trace()
 	std::cout << "raycast: w=" << w << " h=" << h << std::endl;
 
 	scene->intercounter = 0;
+	scene->shadecounter = 0;
 	cout << "Begin raytracing\n";
 	clock_t start = std::clock();
 
@@ -249,6 +250,7 @@ void ray_trace()
 	clock_t stop = std::clock();
 	cout << "Rendered in " << stop - start << " milliseconds\n";
 	cout << scene->intercounter << " triangle intersection tests\n";
+	cout << scene->shadecounter << " shade calls\n";
 	// Create an openGL texture if it doesn't exist allready
 	if (!rayTracedImageId)
 	{

@@ -239,6 +239,7 @@ Hitresult* Mesh::intersectpolygon(int polynum, Ray* ray){
 
 vec3 Mesh::shade(Hitresult* hit){
 	Scene* scene = (Scene*) this->scene;
+	scene->shadecounter++;
 	poly poly = this->polygon[hit->originpoly];
 	float u = hit->shadestuff.u;
 	float v = hit->shadestuff.v;
